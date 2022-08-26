@@ -1,13 +1,21 @@
 ﻿using Discord;
+using Discord.Rest;
 using Discord.WebSocket;
+
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Website.Data;
 
 public class DiscordService
 {
-	public DiscordService(IConfiguration config, WhazzupService whazzup) => _ = LaunchAsync(config["discord:token"], whazzup);
+	public DiscordService(IConfiguration config, WhazzupService whazzup, IDbContextFactory<WebsiteContext> webContextFactory)
+	{
+		_ = LaunchAsync(config["discord:token"], whazzup);
+	}
 
-	private readonly DiscordSocketClient _client = new();
+	private readonly DiscordSocketClient _client = new(new DiscordSocketConfig() { GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers });
+	private readonly IDbContextFactory<WebsiteContext> _webContextFactory;
 
 	public async Task<bool> SendMessageAsync(string channelName, string message)
 	{
@@ -17,6 +25,7 @@ public class DiscordService
 		await stc.SendMessageAsync(text: message);
 		return true;
 	}
+
 	public async Task<bool> SendMessageAsync(ulong channelId, string message)
 	{
 		if (await _client.GetChannelAsync(channelId) is not SocketTextChannel stc)
@@ -63,22 +72,52 @@ public class DiscordService
 	private SocketTextChannel? FindChannelByName(string channelName) =>
 		_client.Guilds.SelectMany(g => g.Channels.Where(c => c is SocketTextChannel)).FirstOrDefault(c => c.Name == channelName) as SocketTextChannel;
 
+	private async Task QuietlyCatalogueUserAsync(IGuildUser igu)
+	{
+		if (!igu.DisplayName.Contains('|'))
+			return;
+
+		string potVid = igu.Nickname?.Split('|', StringSplitOptions.TrimEntries)[^1] ?? "";
+		if (!int.TryParse(potVid, out int vid))
+			return;
+
+		var webContext = _webContextFactory.CreateDbContext();
+		if (await webContext.Users.FindAsync(vid) is User u && u.Discord is null)
+			u.Discord = igu.Id;
+		else
+			webContext.Users.Add(new() { Vid = vid, Discord = igu.Id });
+
+		await webContext.SaveChangesAsync();
+	}
+
 	private async Task LaunchAsync(string token, WhazzupService whazzup)
 	{
-		HashSet<int> trackedControllers = new();
+		Dictionary<int, User?> trackedControllers = new();
 
 		_client.Log += LogAsync;
+		_client.MessageReceived += async msg =>
+		{
+			if (msg.Author is IGuildUser igu)
+				await QuietlyCatalogueUserAsync(igu);
+
+			foreach (var user in msg.MentionedUsers)
+				if (user is IGuildUser igu2)
+					await QuietlyCatalogueUserAsync(igu2);
+		};
+
 		_client.Ready += async () =>
 		{
 			if (FindChannelByName("bot-log") is SocketTextChannel channel)
 			{
-				ulong trackingMessage = (await channel.SendMessageAsync(text: "Online controllers:")).Id;
-				static Embed genEmbed(int vid) => new EmbedBuilder().WithCurrentTimestamp().WithDescription($"[{vid} Member Page](https://ivao.aero/member?Id={vid})").WithImageUrl($"https://status.ivao.aero/{vid}.png").Build();
+				ulong trackingMessage = (await channel.SendMessageAsync(text: "Online controllers: None")).Id;
+
+				static Embed genEmbed(KeyValuePair<int, User?> user) => new EmbedBuilder().WithCurrentTimestamp().WithDescription($"[{user.Value?.Mention ?? user.Key.ToString()} Member Page](https://ivao.aero/member?Id={user.Key})").WithImageUrl($"https://status.ivao.aero/{user.Key}.png?even={DateTime.UtcNow.Minute % 2 == 0}").Build();
 				Task updateAsync() => channel.ModifyMessageAsync(trackingMessage, mp => { mp.Content = "Online controllers:"; if (trackedControllers.Any()) mp.Embeds = new(trackedControllers.Select(genEmbed).ToArray()); else mp.Content += " None"; });
 
 				whazzup.AtcConnected += async controller =>
 				{
-					trackedControllers.Add(controller.UserId);
+					var context = await _webContextFactory.CreateDbContextAsync();
+					trackedControllers.Add(controller.UserId, await context.Users.FindAsync(controller.UserId));
 					await updateAsync();
 				};
 
@@ -99,6 +138,7 @@ public class DiscordService
 						}
 					}
 					catch { }
+					finally { await channel.DeleteMessageAsync(trackingMessage); }
 				});
 			}
 		};

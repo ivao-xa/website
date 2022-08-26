@@ -1,0 +1,37 @@
+﻿@using Website.Data
+@using Microsoft.AspNetCore.Components.QuickGrid
+@inject WhazzupService Whazzup
+
+<div class="rounded bg-secondary text-light p-5">
+    @if (_controllers?.Any() ?? false)
+    {
+        <QuickGrid Items="@(_controllers.AsQueryable())">
+            <TemplateColumn Title="Callsign" IsDefaultSort="SortDirection.Auto">
+                <a href="https://webeye.ivao.aero/?airportId=@context.Callsign.Split('_').FirstOrDefault()" title="@string.Join(Environment.NewLine, context.Atis?.Lines ?? Array.Empty<string>())">@context.Callsign</a>
+            </TemplateColumn>
+            <PropertyColumn Title="Frequency" Property="c => c.AtcSession.Frequency" Format="000.0##" />
+        </QuickGrid>
+    }
+    else
+    {
+
+    }
+</div>
+
+@code {
+    IEnumerable<ATC>? _controllers = null;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        Timer t = new(async _ => await UpdateAsync(), null, 0, 5000);
+    }
+
+    async Task UpdateAsync()
+    {
+        _controllers = (await Whazzup.GetFeedAsync())?.Clients.Atcs; //.Where(c => WhazzupService.IsXAPosition(c.Callsign));
+        await InvokeAsync(StateHasChanged);
+    }
+}

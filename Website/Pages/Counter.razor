@@ -16,7 +16,7 @@
     private async Task IncrementCountAsync()
     {
         if (++currentCount % 10 == 0)
-            if (await Discord.RequestYesNoAsync("alex-bot", $"<@618169599942459408>, the counter has been clicked {currentCount} times. Would you like to reset it?"))
+            if (await Discord.RequestYesNoAsync("bot-log", $"<@618169599942459408>, the counter has been clicked {currentCount} times. Would you like to reset it?"))
             {
                 currentCount = 0;
                 await InvokeAsync(StateHasChanged);

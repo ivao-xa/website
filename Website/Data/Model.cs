@@ -22,7 +22,12 @@ public class User
 {
 	[Key]
 	public int Vid { get; set; }
-	public DateTime LastControlTime { get; set; }
+	public ulong? Discord { get; set; }
+	public DateTime LastControlTime { get; set; } = DateTime.MinValue;
+	public DateTime LastPilotTime { get; set; } = DateTime.MinValue;
+
+	[NotMapped]
+	public string Mention => Discord is ulong l ? $"<@{l}>" : Vid.ToString("000000");
 }
 
 
