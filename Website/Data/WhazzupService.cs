@@ -80,8 +80,10 @@ public class WhazzupService
 			await db.SaveChangesAsync();
 
 			// Trigger update events
-			Task.WaitAll(ConnectedControllers.Except(newControllers).Select(async controller => await (AtcDisconnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
-			Task.WaitAll(newControllers.Except(ConnectedControllers).Select(async controller => await (AtcConnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
+			static IEnumerable<ATC> setDiff(ImmutableHashSet<ATC> from, ImmutableHashSet<ATC> subtract) => from.ExceptBy(subtract.Select(c => c.Callsign), c => c.Callsign);
+
+			Task.WaitAll(setDiff(ConnectedControllers, newControllers).Select(async controller => await (AtcDisconnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
+			Task.WaitAll(setDiff(newControllers, ConnectedControllers).Select(async controller => await (AtcConnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
 
 			ConnectedControllers = newControllers;
 		}
@@ -217,6 +219,8 @@ public struct ATC
 	public AtcSession AtcSession { get; set; }
 	public Atis? Atis { get; set; }
 	public object LastTrack { get; set; }
+
+	public override int GetHashCode() => UserId;
 }
 
 public struct AtcSession

@@ -32,8 +32,16 @@ public class DiscordService
 		{
 			if (FindChannelByName("bot-log") is SocketTextChannel channel)
 			{
-				whazzup.AtcConnected += async controller => trackedMessages.Add(controller.UserId, (await channel.SendMessageAsync(text: $"{controller.Callsign} is online!")).Id);
-				whazzup.AtcDisconnected += async controller => { await channel.DeleteMessageAsync(trackedMessages[controller.UserId]); trackedMessages.Remove(controller.UserId); };
+				whazzup.AtcConnected += async controller =>
+				{
+					var embed = new EmbedBuilder().WithCurrentTimestamp().WithDescription($"[{controller.UserId} Member Page](https://ivao.aero/member?Id={controller.UserId})").WithImageUrl($"https://status.ivao.aero/{controller.UserId}.png");
+					trackedMessages.Add(controller.UserId, (await channel.SendMessageAsync(text: $"{controller.Callsign} is online!", embed: embed.Build())).Id);
+				};
+
+				whazzup.AtcDisconnected += async controller =>
+				{
+					await channel.DeleteMessageAsync(trackedMessages[controller.UserId]); trackedMessages.Remove(controller.UserId);
+				};
 			}
 
 			return Task.CompletedTask;
