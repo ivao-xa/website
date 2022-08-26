@@ -1,12 +1,13 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 
-using Org.BouncyCastle.Utilities;
-
+using System.Collections.Immutable;
 using System.Text.Json;
 
 namespace Website.Data;
 
+/// <summary>
+/// Provides an interface for retrieving feeds from Whazzup and watches for XA controllers.
+/// </summary>
 public class WhazzupService
 {
 	public WhazzupService(HttpClient httpClient, IDbContextFactory<WebsiteContext> webContextFactory)
@@ -24,10 +25,18 @@ public class WhazzupService
 		});
 	}
 
+	/// <summary>Invoked within 90sec of a controller connecting to the network.</summary>
+	public event Func<ATC, Task>? AtcConnected;
+	/// <summary>Invoked within 90sec of a controller disconnecting from the network.</summary>
+	public event Func<ATC, Task>? AtcDisconnected;
+	/// <summary>All controllers currently tracked by the system.</summary>
+	public ImmutableHashSet<ATC> ConnectedControllers { get; private set; } = ImmutableHashSet<ATC>.Empty;
+
 	private readonly HttpClient _http;
 	private Feed? _feed = null;
 	private DateTime _feedUpdated = DateTime.MinValue;
 
+	/// <summary>Retrieves Whazzup data current to within the last 15sec.</summary>
 	public async Task<Feed?> GetFeedAsync()
 	{
 		if (_feed is not null && DateTime.Now - _feedUpdated < TimeSpan.FromSeconds(15))
@@ -45,15 +54,20 @@ public class WhazzupService
 		}
 	}
 
+	/// <summary>Determines if the given <paramref name="callsign"/> is an XA position.</summary>
 	public static bool IsXAPosition(string callsign) => callsign[0] is 'K' or 'C' or 'P' || callsign[..1] is "MY" or "NS" or "TJ" or "TI";
 
-	public async Task UpdateLastConnectedTimes(WebsiteContext db)
+	private async Task UpdateLastConnectedTimes(WebsiteContext db)
 	{
 		Feed? _feed = await GetFeedAsync();
 		if (_feed is not null)
 		{
 			var userVids = db.Users.AsNoTracking().Select(u => u.Vid).ToHashSet();
-			foreach (var controller in _feed.Value.Clients.Atcs.Where(a => IsXAPosition(a.Callsign)))
+
+			var newControllers = _feed.Value.Clients.Atcs.Where(a => IsXAPosition(a.Callsign)).ToImmutableHashSet();
+
+			// Keep the currency database live.
+			foreach (var controller in newControllers)
 			{
 				User newUser = new() { Vid = controller.UserId, LastControlTime = _feed.Value.UpdatedAt };
 
@@ -64,10 +78,17 @@ public class WhazzupService
 			}
 
 			await db.SaveChangesAsync();
+
+			// Trigger update events
+			Task.WaitAll(ConnectedControllers.Except(newControllers).Select(async controller => await (AtcDisconnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
+			Task.WaitAll(newControllers.Except(ConnectedControllers).Select(async controller => await (AtcConnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
+
+			ConnectedControllers = newControllers;
 		}
 	}
 }
 
+#region Auto-generated Json structs
 public struct Feed
 {
 	public DateTime UpdatedAt { get; set; }
@@ -224,3 +245,4 @@ public struct Observer
 	public AtcSession AtcSession { get; set; }
 	public object LastTrack { get; set; }
 }
+#endregion

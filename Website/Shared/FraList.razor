@@ -1,0 +1,51 @@
+﻿@using Website.Data
+@inject IvaoApiService Api
+
+<Authenticated>
+@if (_remainingFras is not null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">VID</th>
+                <th scope="col">Usage</th>
+                <th scope="col">Position</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (Fra fra in _remainingFras.Where(f => f.userId is not null))
+            {
+                <tr>
+                    <th scope="row">@fra.userId</th>
+                    <td>@(string.IsNullOrEmpty(fra.date) ? "Recurring" : "Single")</td>
+                    <td>
+                        @if (fra.atcPosition is not null)
+                        {
+                            @fra.atcPosition.composePosition
+                        }
+                        @if (fra.subcenter is not null)
+                        {
+                            @fra.subcenter.composePosition
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+</Authenticated>
+
+@code {
+
+    private HashSet<Fra>? _remainingFras = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _remainingFras = await Api.GetFeedAsync();
+
+        await InvokeAsync(StateHasChanged);
+    }
+}

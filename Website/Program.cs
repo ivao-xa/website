@@ -15,9 +15,10 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<ProtectedSessionStorage>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IvaoLoginService>();
-var tmp = builder.Configuration["xaivao_web_password"];
 builder.Services.AddDbContextFactory<WebsiteContext>(options => options.UseMySQL($"server=xa.ivao.aero;database=xaivao_web;user=xaivao_web;password={builder.Configuration["xaivao_web_password"]}"));
 builder.Services.AddSingleton<WhazzupService>();
+builder.Services.AddSingleton<IvaoApiService>();
+builder.Services.AddSingleton<DiscordService>();
 
 var app = builder.Build();
 
@@ -40,5 +41,6 @@ app.MapFallbackToPage("/_Host");
 
 // Trigger the updating thread
 app.Services.GetService<WhazzupService>();
+app.Services.GetService<DiscordService>();
 
 app.Run();

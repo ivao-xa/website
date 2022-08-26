@@ -1,4 +1,6 @@
 ﻿@page "/counter"
+@using Website.Data
+@inject DiscordService Discord
 
 <PageTitle>Counter</PageTitle>
 
@@ -13,6 +15,7 @@
 
     private void IncrementCount()
     {
-        currentCount++;
+        if (++currentCount % 10 == 0)
+            _ = Discord.SendMessageAsync("alex-bot", $"<@618169599942459408>, the counter has been clicked {currentCount} times.");
     }
 }

@@ -1,13 +1,31 @@
 ﻿@page "/"
 @using Microsoft.EntityFrameworkCore.Internal
 @using Website.Data
+@inject IvaoApiService Api
 
 <Authenticated>
     <PageTitle>Index</PageTitle>
 
     <h1>Hello, @(context.FirstName)!</h1>
 
-    Welcome to your new app.
+    Welcome to your new app. Here's your inescapable reminder that you have @(_remainingFras?.Count(f => f.userId is not null).ToString() ?? "??") single-user FRAs to deal with.
+
+    <FraList />
 
     <SurveyPrompt Title="How is Blazor working for you?" />
 </Authenticated>
+
+@code
+{
+    private HashSet<Fra>? _remainingFras = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        _remainingFras = await Api.GetFeedAsync();
+
+        await InvokeAsync(StateHasChanged);
+    }
+}
