@@ -1,43 +1,41 @@
-﻿@using Website.Data
+﻿@using Microsoft.EntityFrameworkCore
+@using System.Text.RegularExpressions
+@using Website.Data
+@using Microsoft.AspNetCore.Components.QuickGrid
 @inject IvaoApiService Api
 
 <Authenticated>
-@if (_remainingFras is not null)
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th scope="col">VID</th>
-                <th scope="col">Usage</th>
-                <th scope="col">Position</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (Fra fra in _remainingFras.Where(f => f.userId is not null))
-            {
-                <tr>
-                    <th scope="row">@fra.userId</th>
-                    <td>@(string.IsNullOrEmpty(fra.date) ? "Recurring" : "Single")</td>
-                    <td>
-                        @if (fra.atcPosition is not null)
-                        {
-                            @fra.atcPosition.composePosition
-                        }
-                        @if (fra.subcenter is not null)
-                        {
-                            @fra.subcenter.composePosition
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+    @if (_remainingFras is not null)
+    {
+        <div class="proc-grid">
+            <QuickGrid Items="@_remainingFras.Select(x => (x, CheckFilter(x))).TakeWhile(x => x.Item2 is not null).Where(x => x.Item2 is true).Select(x => x.x).AsQueryable()">
+                <PropertyColumn Title="Position" Property="@(f => f.atcPosition == null ? f.subcenter!.composePosition : f.atcPosition.composePosition)" Sortable="true">
+                    <ColumnOptions>
+                        <div class="proc-search"><input @bind="_query" autofocus @bind:event="oninput" type="search" placeholder="Search…" /></div>
+                    </ColumnOptions>
+                </PropertyColumn>
+                <PropertyColumn Title="VID" Property="@(f => f.userId == null ? "" : f.userId.ToString())" Sortable="true" />
+                <TemplateColumn Title="Rating" SortBy="@(GridSort<Fra>.ByAscending(x => x.minAtc == null ? -1 : x.minAtc))">
+                    <ChildContent Context="f">
+                        @(f.minAtc == null ? "" : RatingToName(f.minAtc.Value))
+                    </ChildContent>
+                    <ColumnOptions>
+                        <label>
+                            <input type="checkbox" @bind="_noStudents" @onclick="FilterChangedAsync" /> ADC+ Only
+                        </label>
+                    </ColumnOptions>
+                </TemplateColumn>
+            </QuickGrid>
+        </div>
+    }
 </Authenticated>
 
 @code {
-
+    private string _query = "";
+    private bool _noStudents = false;
     private HashSet<Fra>? _remainingFras = null;
+
+    private string RatingToName(int rating) => rating switch { 2 or 3 or 4 => $"AS{rating - 1}", 5 => "ADC", 6 => "APC", 7 => "ACC", 8 => "SEC", 9 => "SAI", 10 => "CAI", _ => rating.ToString() };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -48,4 +46,18 @@
 
         await InvokeAsync(StateHasChanged);
     }
+
+    private bool? CheckFilter(Fra x)
+    {
+        if (_noStudents && x.minAtc is not >= 5)
+            return false;
+
+        try
+        { 
+            return string.IsNullOrWhiteSpace(_query) || Regex.IsMatch(x.atcPosition?.composePosition ?? x.subcenter!.composePosition, _query, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
+        }
+        catch (RegexParseException) { return null; }
+    }
+
+    Task FilterChangedAsync() => InvokeAsync(StateHasChanged);
 }

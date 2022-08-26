@@ -66,7 +66,7 @@ public class WhazzupService
 
 			var newControllers = _feed.Value.Clients.Atcs.Where(a => IsXAPosition(a.Callsign)).ToImmutableHashSet();
 
-			// Keep the currency database live.
+			// Keep the currency database live
 			foreach (var controller in newControllers)
 			{
 				User newUser = new() { Vid = controller.UserId, LastControlTime = _feed.Value.UpdatedAt };
