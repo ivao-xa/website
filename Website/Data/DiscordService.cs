@@ -11,6 +11,7 @@ public class DiscordService
 {
 	public DiscordService(IConfiguration config, WhazzupService whazzup, IDbContextFactory<WebsiteContext> webContextFactory)
 	{
+		_webContextFactory = webContextFactory;
 		_ = LaunchAsync(config["discord:token"], whazzup);
 	}
 
@@ -83,9 +84,9 @@ public class DiscordService
 
 		var webContext = _webContextFactory.CreateDbContext();
 		if (await webContext.Users.FindAsync(vid) is User u && u.Discord is null)
-			u.Discord = igu.Id;
+			u.Discord = new() { Snowflake = igu.Id, Roles = DiscordRoles.Member | DiscordRoles.Controller };
 		else
-			webContext.Users.Add(new() { Vid = vid, Discord = igu.Id });
+			webContext.Users.Add(new() { Vid = vid, Discord = new() { Snowflake = igu.Id, Roles = DiscordRoles.Member | DiscordRoles.Controller } });
 
 		await webContext.SaveChangesAsync();
 	}
