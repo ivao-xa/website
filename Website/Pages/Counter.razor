@@ -8,14 +8,18 @@
 
 <p role="status">Current count: @currentCount</p>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+<button class="btn btn-primary" @onclick="IncrementCountAsync">Click me</button>
 
 @code {
     private int currentCount = 0;
 
-    private void IncrementCount()
+    private async Task IncrementCountAsync()
     {
         if (++currentCount % 10 == 0)
-            _ = Discord.SendMessageAsync("alex-bot", $"<@618169599942459408>, the counter has been clicked {currentCount} times.");
+            if (await Discord.RequestYesNoAsync("alex-bot", $"<@618169599942459408>, the counter has been clicked {currentCount} times. Would you like to reset it?"))
+            {
+                currentCount = 0;
+                await InvokeAsync(StateHasChanged);
+            }
     }
 }

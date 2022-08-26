@@ -8,20 +8,26 @@
     @if (_remainingFras is not null)
     {
         <div class="proc-grid">
-            <QuickGrid Items="@_remainingFras.Select(x => (x, CheckFilter(x))).TakeWhile(x => x.Item2 is not null).Where(x => x.Item2 is true).Select(x => x.x).AsQueryable()">
+            <QuickGrid Items="@_remainingFras.Select(x => (x, CheckFilter(x))).TakeWhile(x => x.Item2 is not null).Where(x => x.Item2 is true).Select(x => x.x).AsQueryable().DistinctBy(x => x.GetHashCode())">
                 <PropertyColumn Title="Position" Property="@(f => f.atcPosition == null ? f.subcenter!.composePosition : f.atcPosition.composePosition)" Sortable="true">
                     <ColumnOptions>
                         <div class="proc-search"><input @bind="_query" autofocus @bind:event="oninput" type="search" placeholder="Search…" /></div>
                     </ColumnOptions>
                 </PropertyColumn>
-                <PropertyColumn Title="VID" Property="@(f => f.userId == null ? "" : f.userId.ToString())" Sortable="true" />
+                <PropertyColumn Title="VID" Property="@(f => f.userId == null ? "" : f.userId.ToString())" Sortable="true">
+                    <ColumnOptions>
+                        <label>
+                            <input type="checkbox" @bind="_vidOnly" @onclick="() => { _ratingOnly = false; FilterChangedAsync(); }" /> VID-Based Only
+                        </label>
+                    </ColumnOptions>
+                </PropertyColumn>
                 <TemplateColumn Title="Rating" SortBy="@(GridSort<Fra>.ByAscending(x => x.minAtc == null ? -1 : x.minAtc))">
                     <ChildContent Context="f">
                         @(f.minAtc == null ? "" : RatingToName(f.minAtc.Value))
                     </ChildContent>
                     <ColumnOptions>
                         <label>
-                            <input type="checkbox" @bind="_noStudents" @onclick="FilterChangedAsync" /> ADC+ Only
+                            <input type="checkbox" @bind="_ratingOnly" @onclick="() => { _vidOnly = false; FilterChangedAsync(); }" /> Rating-Based Only
                         </label>
                     </ColumnOptions>
                 </TemplateColumn>
@@ -32,7 +38,8 @@
 
 @code {
     private string _query = "";
-    private bool _noStudents = false;
+    private bool _ratingOnly = false;
+    private bool _vidOnly = false;
     private HashSet<Fra>? _remainingFras = null;
 
     private string RatingToName(int rating) => rating switch { 2 or 3 or 4 => $"AS{rating - 1}", 5 => "ADC", 6 => "APC", 7 => "ACC", 8 => "SEC", 9 => "SAI", 10 => "CAI", _ => rating.ToString() };
@@ -49,11 +56,14 @@
 
     private bool? CheckFilter(Fra x)
     {
-        if (_noStudents && x.minAtc is not >= 5)
+        if (_ratingOnly && x.minAtc is null)
+            return false;
+
+        if (_vidOnly && x.userId is null)
             return false;
 
         try
-        { 
+        {
             return string.IsNullOrWhiteSpace(_query) || Regex.IsMatch(x.atcPosition?.composePosition ?? x.subcenter!.composePosition, _query, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline);
         }
         catch (RegexParseException) { return null; }

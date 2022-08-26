@@ -62,19 +62,16 @@ public class WhazzupService
 		Feed? _feed = await GetFeedAsync();
 		if (_feed is not null)
 		{
-			var userVids = db.Users.AsNoTracking().Select(u => u.Vid).ToHashSet();
-
 			var newControllers = _feed.Value.Clients.Atcs.Where(a => IsXAPosition(a.Callsign)).ToImmutableHashSet();
 
 			// Keep the currency database live
 			foreach (var controller in newControllers)
 			{
-				User newUser = new() { Vid = controller.UserId, LastControlTime = _feed.Value.UpdatedAt };
-
-				if (userVids.Contains(newUser.Vid))
-					db.Users.Update(newUser);
+				User? user = await db.Users.FindAsync(controller.UserId);
+				if (user is null)
+					db.Users.Add(new() { Vid = controller.UserId, LastControlTime = _feed.Value.UpdatedAt });
 				else
-					db.Users.Add(newUser);
+					user.LastControlTime = _feed.Value.UpdatedAt;
 			}
 
 			await db.SaveChangesAsync();

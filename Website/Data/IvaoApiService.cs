@@ -1,6 +1,4 @@
-﻿using System.Diagnostics;
-
-namespace Website.Data;
+﻿namespace Website.Data;
 
 public class IvaoApiService
 {
@@ -81,6 +79,8 @@ public class Fra
 	public bool active { get; set; }
 	public AtcPosition? atcPosition { get; set; }
 	public Subcenter? subcenter { get; set; }
+
+	public override int GetHashCode() => HashCode.Combine(userId, minAtc, atcPosition?.composePosition ?? subcenter!.composePosition);
 }
 
 public class Subcenter
