@@ -1,7 +1,11 @@
 ﻿@using System.Web
+@using Microsoft.EntityFrameworkCore
 @using Website.Data
 @inject NavigationManager NavManager
 @inject IvaoLoginService LoginSrv
+@inject DiscordService Discord
+@inject IDbContextFactory<WebsiteContext> WebContextFactory
+@inject IvaoApiService Api
 
 @if (authenticatedUser is not null && ChildContent is not null)
 {
@@ -35,8 +39,22 @@
 
         await LoginSrv.RegisterUserAsync(token);
         authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
+        if (authenticatedUser is not null)
+            await CheckDiscordRoles(authenticatedUser);
 
         NavManager.NavigateTo(new Uri(url).GetLeftPart(UriPartial.Path));
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CheckDiscordRoles(IvaoLoginData loginData)
+    {
+        var db = WebContextFactory.CreateDbContext();
+        var user = await db.Users.FindAsync(loginData.Vid);
+
+        if (user is null)
+            return;
+
+        await Discord.EnforceRolesAsync(loginData, user, Api);
+        await db.SaveChangesAsync();
     }
 }
