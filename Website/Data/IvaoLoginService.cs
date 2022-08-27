@@ -3,6 +3,8 @@
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 using System.Security.Cryptography;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 public class IvaoLoginService
 {
@@ -14,7 +16,8 @@ public class IvaoLoginService
 
 	public async Task RegisterUserAsync(string token)
 	{
-		IvaoLoginData? json = await _http.GetFromJsonAsync<IvaoLoginData>($"https://login.ivao.aero/api.php?type=json&token={token}");
+		JsonSerializerOptions options = new() { NumberHandling = JsonNumberHandling.AllowReadingFromString, PropertyNameCaseInsensitive = true  };
+		IvaoLoginData? json = await _http.GetFromJsonAsync<IvaoLoginData>($"https://login.ivao.aero/api.php?type=json&token={token}", options);
 
 		if (json is null)
 			return;
@@ -38,4 +41,4 @@ public class IvaoLoginService
 	}
 }
 
-public record IvaoLoginData(int Result, string Vid, string FirstName, string LastName, int Rating, int RatingAtc, int RatingPilot, string Division, string Country, int Hours_Atc, int Hours_Pilot, string Staff) { }
+public record IvaoLoginData(int Result, int Vid, string FirstName, string LastName, int Rating, int RatingAtc, int RatingPilot, string Division, string Country, int Hours_Atc, int Hours_Pilot, string Staff) { }

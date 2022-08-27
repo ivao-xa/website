@@ -2,7 +2,6 @@
 
 public class IvaoApiService
 {
-
 	public IvaoApiService(HttpClient httpClient, IConfiguration config)
 	{
 		_http = httpClient;
@@ -16,14 +15,14 @@ public class IvaoApiService
 	private HashSet<Fra>? _fras = null;
 	private DateTime _frasUpdated = DateTime.MinValue;
 
-	public async Task<HashSet<Fra>?> GetFeedAsync()
+	public async Task<HashSet<Fra>?> GetFrasAsync(string division = "XA", bool vidBased = true, bool ratingBased = true)
 	{
 		if (_fras is not null && DateTime.Now - _frasUpdated < TimeSpan.FromMinutes(1))
 			return _fras;
 
 		try
 		{
-			var pg1 = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page=1&perPage=100&divisionId=XA&isActive=true&members=true&positions=true&expand=true&apiKey={_apiKey}");
+			var pg1 = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page=1&perPage=100&divisionId={division}&isActive=true&members={vidBased}&positions={ratingBased}&expand=true&apiKey={_apiKey}");
 
 			if (pg1 is null)
 				return null;
@@ -33,7 +32,7 @@ public class IvaoApiService
 
 			for (int page = 2; page <= pg1.pages; ++page)
 			{
-				var pg = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page={page}&perPage=100&divisionId=XA&isActive=true&members=true&positions=true&expand=true&apiKey={_apiKey}");
+				var pg = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page={page}&perPage=100&divisionId={division}&isActive=true&members={vidBased}&positions={ratingBased}&expand=true&apiKey={_apiKey}");
 				if (pg is null)
 					break;
 				_fras.UnionWith(pg.items);
@@ -47,6 +46,9 @@ public class IvaoApiService
 			return null;
 		}
 	}
+
+	public async Task<Country[]> GetCountriesAsync(string division = "XA") =>
+		(await _http.GetFromJsonAsync<Countries>($"https://api.ivao.aero/v2/countries?page=1&perPage=50&divisionId={division}&apiKey={_apiKey}"))!.items;
 }
 
 
@@ -103,3 +105,20 @@ public class AtcPosition
 	public string position { get; set; } = string.Empty;
 }
 
+
+public class Countries
+{
+	public Country[] items { get; set; } = Array.Empty<Country>();
+	public int totalItems { get; set; }
+	public int perPage { get; set; }
+	public int page { get; set; }
+	public int pages { get; set; }
+}
+
+public class Country
+{
+	public string id { get; set; } = string.Empty;
+	public string name { get; set; } = string.Empty;
+	public string region { get; set; } = string.Empty;
+	public string divisionId { get; set; } = string.Empty;
+}

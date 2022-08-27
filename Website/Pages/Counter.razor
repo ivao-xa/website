@@ -1,25 +1,36 @@
 ﻿@page "/counter"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.EntityFrameworkCore.Internal
+@using System.Text.RegularExpressions
 @using Website.Data
 @inject DiscordService Discord
+@inject IDbContextFactory<WebsiteContext> WebContextFactory
+@inject IvaoApiService Api
 
 <PageTitle>Counter</PageTitle>
 
 <h1>Counter</h1>
 
-<p role="status">Current count: @currentCount</p>
+<Authenticated>
+    <p role="status">Current count: @currentCount</p>
 
-<button class="btn btn-primary" @onclick="IncrementCountAsync">Click me</button>
+    <button class="btn btn-primary" @onclick="() => _ = IncrementCountAsync(context)">Click me</button>
+</Authenticated>
 
 @code {
     private int currentCount = 0;
 
-    private async Task IncrementCountAsync()
+    private async Task IncrementCountAsync(IvaoLoginData loginData)
     {
-        if (++currentCount % 10 == 0)
-            if (await Discord.RequestYesNoAsync("bot-log", $"<@618169599942459408>, the counter has been clicked {currentCount} times. Would you like to reset it?"))
-            {
-                currentCount = 0;
-                await InvokeAsync(StateHasChanged);
-            }
+        ++currentCount;
+
+        var db = WebContextFactory.CreateDbContext();
+        var user = await db.Users.FindAsync(loginData.Vid);
+
+        if (user is null)
+            return;
+
+        await Discord.EnforceRolesAsync(loginData, user, Api);
+        await db.SaveChangesAsync();
     }
 }

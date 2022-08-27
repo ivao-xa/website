@@ -25,43 +25,21 @@ namespace Website.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<ulong?>("DiscordSnowflake")
-                        .HasColumnType("bigint unsigned");
-
                     b.Property<DateTime>("LastControlTime")
                         .HasColumnType("datetime");
 
                     b.Property<DateTime>("LastPilotTime")
                         .HasColumnType("datetime");
 
-                    b.HasKey("Vid");
-
-                    b.HasIndex("DiscordSnowflake");
-
-                    b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("Website.Data.UserRole", b =>
-                {
-                    b.Property<ulong>("Snowflake")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint unsigned");
-
                     b.Property<ulong>("Roles")
                         .HasColumnType("bigint unsigned");
 
-                    b.HasKey("Snowflake");
+                    b.Property<ulong?>("Snowflake")
+                        .HasColumnType("bigint unsigned");
 
-                    b.ToTable("Roles");
-                });
+                    b.HasKey("Vid");
 
-            modelBuilder.Entity("Website.Data.User", b =>
-                {
-                    b.HasOne("Website.Data.UserRole", "Discord")
-                        .WithMany()
-                        .HasForeignKey("DiscordSnowflake");
-
-                    b.Navigation("Discord");
+                    b.ToTable("Users");
                 });
 #pragma warning restore 612, 618
         }

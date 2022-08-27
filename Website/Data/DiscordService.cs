@@ -5,6 +5,8 @@ using Discord.WebSocket;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Internal;
 
+using System.Text.RegularExpressions;
+
 namespace Website.Data;
 
 public class DiscordService
@@ -15,7 +17,7 @@ public class DiscordService
 		_ = LaunchAsync(config["discord:token"], whazzup);
 	}
 
-	private readonly DiscordSocketClient _client = new(new DiscordSocketConfig() { GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers });
+	internal readonly DiscordSocketClient _client = new(new DiscordSocketConfig() { GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers });
 	private readonly IDbContextFactory<WebsiteContext> _webContextFactory;
 
 	public async Task<bool> SendMessageAsync(string channelName, string message)
@@ -70,6 +72,52 @@ public class DiscordService
 		return result;
 	}
 
+	public async Task EnforceRolesAsync(IvaoLoginData loginData, User user, IvaoApiService api)
+	{
+		if (user.Snowflake is null || user.Vid != loginData.Vid)
+			return;
+
+		static IEnumerable<ulong> roleToSnowflakes(DiscordRoles roles)
+		{
+			if (roles.HasFlag(DiscordRoles.Member))
+				yield return 1012842226692407366UL; // bot-1
+			if (roles.HasFlag(DiscordRoles.Staff))
+				yield return 1012842187848945786UL; // bot-2
+			if (roles.HasFlag(DiscordRoles.Controller))
+				yield return 1012842152797151282UL; // bot-4
+			if (roles.HasFlag(DiscordRoles.Pilot))
+				yield return 1012842085684105318UL; // bot-8
+			if (roles.HasFlag(DiscordRoles.Training))
+				yield return 1012842037705445496UL; // bot-64
+			if (roles.HasFlag(DiscordRoles.Membership))
+				yield return 1012841935339278428UL; // bot-128
+			if (roles.HasFlag(DiscordRoles.Administrator))
+				yield return 1012841779961282661UL; // bot-max
+		}
+
+		var ivao = _client.Guilds.Single();
+		_client.PurgeUserCache();
+		await _client.DownloadUsersAsync(new[] { ivao });
+		if (ivao.GetUser(user.Snowflake.Value) is not IGuildUser igu)
+			return;
+
+		Regex trainer = new(@"\bXA-T[A0]");
+		Regex membership = new(@"\bXA-M(AC?|C)");
+		void setFlag(bool set, DiscordRoles flag)
+		{
+			if (set)
+				user.Roles |= flag;
+			else
+				user.Roles &= ~flag;
+		}
+
+		setFlag(trainer.IsMatch(loginData.Staff), DiscordRoles.Training);
+		setFlag(membership.IsMatch(loginData.Staff), DiscordRoles.Membership);
+		setFlag((await api.GetCountriesAsync()).SelectMany(c => new[] { c.id, c.divisionId }).Contains(loginData.Division), DiscordRoles.Member);
+
+		await igu.AddRolesAsync(roleToSnowflakes(user.Roles).ToArray());
+	}
+
 	private SocketTextChannel? FindChannelByName(string channelName) =>
 		_client.Guilds.SelectMany(g => g.Channels.Where(c => c is SocketTextChannel)).FirstOrDefault(c => c.Name == channelName) as SocketTextChannel;
 
@@ -83,10 +131,10 @@ public class DiscordService
 			return;
 
 		var webContext = _webContextFactory.CreateDbContext();
-		if (await webContext.Users.FindAsync(vid) is User u && u.Discord is null)
-			u.Discord = new() { Snowflake = igu.Id, Roles = DiscordRoles.Member | DiscordRoles.Controller };
+		if (await webContext.Users.FindAsync(vid) is User u && u.Snowflake is null)
+			u.Snowflake = igu.Id;
 		else
-			webContext.Users.Add(new() { Vid = vid, Discord = new() { Snowflake = igu.Id, Roles = DiscordRoles.Member | DiscordRoles.Controller } });
+			await webContext.Users.AddAsync(new() { Vid = vid, Snowflake = igu.Id, Roles = 0 });
 
 		await webContext.SaveChangesAsync();
 	}

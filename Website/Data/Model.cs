@@ -12,7 +12,6 @@ namespace Website.Data;
 public class WebsiteContext : DbContext
 {
 	public DbSet<User> Users { get; set; }
-	public DbSet<UserRole> UserRoles { get; set; }
 
 	public WebsiteContext(DbContextOptions<WebsiteContext> options) : base(options) { }
 }
@@ -23,21 +22,13 @@ public class User
 {
 	[Key]
 	public int Vid { get; set; }
-	public UserRole? Discord { get; set; }
+	public ulong? Snowflake { get; set; }
+	public DiscordRoles Roles { get; set; }
 	public DateTime LastControlTime { get; set; } = DateTime.MinValue;
 	public DateTime LastPilotTime { get; set; } = DateTime.MinValue;
 
 	[NotMapped]
-	public string Mention => Discord?.Snowflake is ulong l ? $"<@{l}>" : Vid.ToString("000000");
-}
-
-[Table("Roles")]
-public class UserRole
-{
-	[Key]
-	public ulong Snowflake { get; set; }
-
-	public DiscordRoles Roles { get; set; }
+	public string Mention => Snowflake is ulong l ? $"<@{l}>" : Vid.ToString("000000");
 }
 
 [Flags]
@@ -49,7 +40,10 @@ public enum DiscordRoles : ulong
 	Controller	= 0b01_00,
 	Pilot		= 0b10_00,
 
-	Administrator = 0x8000_0000_0000_0000L
+	Training	= 0b0001_00_00_00,
+	Membership	= 0b0010_00_00_00,
+
+	Administrator = 0x8_00000_0000_00_00_00L
 }
 
 // https://www.svrz.com/unable-to-resolve-service-for-type-microsoft-entityframeworkcore-storage-typemappingsourcedependencies/
