@@ -60,7 +60,7 @@ public class DiscordService
 		async Task yesNoButtonClicked(SocketMessageComponent component)
 		{
 			_client.ButtonExecuted -= yesNoButtonClicked;
-			result = component.Data.CustomId switch { "yes" => true, "no" => false, _ => throw new ArgumentException() };
+			result = component.Data.CustomId switch { "yes" => true, "no" => false, _ => throw new ArgumentException("Button ids must be yes & no", nameof(component)) };
 			await component.Message.DeleteAsync();
 			mres.Set();
 		}
@@ -166,7 +166,7 @@ public class DiscordService
 				whazzup.AtcConnected += async controller =>
 				{
 					var context = await _webContextFactory.CreateDbContextAsync();
-					trackedControllers.Add(controller.UserId, await context.Users.FindAsync(controller.UserId));
+					trackedControllers.Add(controller.UserId, context.Users.AsNoTracking().First(u => u.Vid == controller.UserId));
 					await updateAsync();
 				};
 

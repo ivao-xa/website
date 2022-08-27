@@ -69,14 +69,20 @@ public class WhazzupService
 			{
 				User? user = await db.Users.FindAsync(controller.UserId);
 				if (user is null)
-					db.Users.Add(new() { Vid = controller.UserId, LastControlTime = _feed.Value.UpdatedAt, LastPilotTime = DateTime.MinValue });
+					db.Users.Add(new() { Vid = controller.UserId, LastControlTime = _feed.Value.UpdatedAt, LastPilotTime = DateTime.MinValue, Roles = DiscordRoles.Controller });
 				else
+				{
 					user.LastControlTime = _feed.Value.UpdatedAt;
+					user.Roles |= DiscordRoles.Controller;
+				}
 			}
 
 			ImmutableHashSet<int> pilots = _feed.Value.Clients.Pilots.Select(p => p.UserId).ToImmutableHashSet();
 			foreach (var user in db.Users.Where(u => pilots.Contains(u.Vid)))
+			{
 				user.LastPilotTime = _feed.Value.UpdatedAt;
+				user.Roles |= DiscordRoles.Pilot;
+			}
 
 			await db.SaveChangesAsync();
 
