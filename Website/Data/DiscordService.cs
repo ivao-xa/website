@@ -1,9 +1,7 @@
 ﻿using Discord;
-using Discord.Rest;
 using Discord.WebSocket;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Internal;
 
 using System.Text.RegularExpressions;
 
@@ -72,9 +70,9 @@ public class DiscordService
 		return result;
 	}
 
-	public async Task EnforceRolesAsync(IvaoLoginData loginData, User user, IvaoApiService api)
+	public async Task EnforceRolesAsync(User user, IvaoApiService api)
 	{
-		if (user.Snowflake is null || user.Vid != loginData.Vid)
+		if (user.Snowflake is null)
 			return;
 
 		static IEnumerable<ulong> roleToSnowflakes(DiscordRoles roles)
@@ -111,9 +109,9 @@ public class DiscordService
 				user.Roles &= ~flag;
 		}
 
-		setFlag(trainer.IsMatch(loginData.Staff), DiscordRoles.Training);
-		setFlag(membership.IsMatch(loginData.Staff), DiscordRoles.Membership);
-		setFlag((await api.GetCountriesAsync()).SelectMany(c => new[] { c.id, c.divisionId }).Contains(loginData.Division), DiscordRoles.Member);
+		setFlag(user.Staff is not null && trainer.IsMatch(user.Staff), DiscordRoles.Training);
+		setFlag(user.Staff is not null && membership.IsMatch(user.Staff), DiscordRoles.Membership);
+		setFlag((await api.GetCountriesAsync()).SelectMany(c => new[] { c.id, c.divisionId }).Contains(user.Division), DiscordRoles.Member);
 
 		await igu.AddRolesAsync(roleToSnowflakes(user.Roles).ToArray());
 	}

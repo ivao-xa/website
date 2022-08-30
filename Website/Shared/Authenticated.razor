@@ -14,9 +14,9 @@
 
 @code {
     [Parameter]
-    public RenderFragment<IvaoLoginData>? ChildContent { get; set; }
+    public RenderFragment<User>? ChildContent { get; set; }
 
-    IvaoLoginData? authenticatedUser = null;
+    User? authenticatedUser = null;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -46,15 +46,15 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task CheckDiscordRoles(IvaoLoginData loginData)
+    private async Task CheckDiscordRoles(User authenticatedUser)
     {
         var db = WebContextFactory.CreateDbContext();
-        var user = await db.Users.FindAsync(loginData.Vid);
+        var user = await db.Users.FindAsync(authenticatedUser.Vid);
 
         if (user is null)
             return;
 
-        await Discord.EnforceRolesAsync(loginData, user, Api);
+        await Discord.EnforceRolesAsync(user, Api);
         await db.SaveChangesAsync();
     }
 }

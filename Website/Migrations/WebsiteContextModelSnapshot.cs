@@ -19,23 +19,71 @@ namespace Website.Migrations
                 .HasAnnotation("ProductVersion", "6.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
+            modelBuilder.Entity("Website.Data.DeviationReport", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Callsign")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("FilingTime")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("Reportee")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Reporter")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Deviations");
+                });
+
             modelBuilder.Entity("Website.Data.User", b =>
                 {
                     b.Property<int>("Vid")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<string>("Country")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Division")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("FirstName")
+                        .HasColumnType("longtext");
+
                     b.Property<DateTime>("LastControlTime")
                         .HasColumnType("datetime");
 
+                    b.Property<string>("LastName")
+                        .HasColumnType("longtext");
+
                     b.Property<DateTime>("LastPilotTime")
                         .HasColumnType("datetime");
+
+                    b.Property<int?>("RatingAtc")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RatingPilot")
+                        .HasColumnType("int");
 
                     b.Property<ulong>("Roles")
                         .HasColumnType("bigint unsigned");
 
                     b.Property<ulong?>("Snowflake")
                         .HasColumnType("bigint unsigned");
+
+                    b.Property<string>("Staff")
+                        .HasColumnType("longtext");
 
                     b.HasKey("Vid");
 
