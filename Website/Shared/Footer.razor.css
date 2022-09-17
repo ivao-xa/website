@@ -1,0 +1,23 @@
+﻿.dashed-border {
+    border: 1px dashed rgba(var(--bs-secondary-rgb));
+}
+
+.dashed-border-top {
+    border-top: 1px dashed rgba(var(--bs-secondary-rgb));
+}
+
+a {
+    text-decoration-line: none;
+}
+
+.department {
+    margin-top: 1rem;
+}
+
+.social {
+    margin-top: 1rem;
+}
+
+    .social img {
+        max-height: 20px;
+    }

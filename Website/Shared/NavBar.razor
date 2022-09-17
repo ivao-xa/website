@@ -1,15 +1,25 @@
-﻿<nav class="navbar navbar-light bg-light static-top">
+﻿<nav class="navbar navbar-dark bg-dark sticky-top">
     <div class="container">
-        <a class="navbar-brand" href="/"><img src="img/xa_logo.svg" title="IVAO XA logo" style="height: 2.5ex;" class="m-1" />IVAO XA</a>
-        <Authenticated>
-            <span>@(_greetings[System.Random.Shared.Next(_greetings.Length)]), <a href="https://ivao.aero/Member.aspx?ID=@context.Vid" target="_blank">@context.FirstName</a>!</span>
-        </Authenticated>
+        <div class="d-flex align-items-center justify-content-between" style="width: 100%;">
+            <a class="navbar-brand" href="/"><img src="img/logo_white.svg" title="IVAO XA logo" style="height: 2.5ex;" class="m-1" /></a>
+            <div class="d-flex nav flex-row">
+                <div><NavLink class="nav-link" Match="NavLinkMatch.All" href="/">Home</NavLink></div>
+                <div><NavLink class="nav-link" href="/about">About</NavLink></div>
+                <div><NavLink class="nav-link" href="/atc">ATC</NavLink></div>
+                <div><NavLink class="nav-link" href="/pilot">Pilot</NavLink></div>
+                <div><NavLink class="nav-link" href="/training">Training</NavLink></div>
+                <div><NavLink class="nav-link" href="/community">Community</NavLink></div>
+            </div>
+            <Authenticated>
+                <span class="text-muted">@(_greetings[System.Random.Shared.Next(_greetings.Length)]), <a href="https://ivao.aero/Member.aspx?ID=@context.Vid" target="_blank">@context.FirstName</a>!</span>
+            </Authenticated>
+        </div>
     </div>
 </nav>
 
 @code {
     private readonly string[] _greetings = new[]
     {
-        "Hello", "Greetings", "Good day", "Salutations", "Howdy", "'Sup", "Hey", "How's it going", "What's up", "Blue skies"
+        "Hello", "Greetings", "Good day", "Salutations", "Howdy", "Hey", "How's it going", "What's up", "Blue skies"
     };
 }
