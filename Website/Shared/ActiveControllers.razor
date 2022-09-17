@@ -2,21 +2,42 @@
 @using Microsoft.AspNetCore.Components.QuickGrid
 @inject WhazzupService Whazzup
 
-<div class="rounded bg-secondary text-light p-5">
-    @if (_controllers?.Any() ?? false)
-    {
-        <QuickGrid Items="@(_controllers.AsQueryable())">
-            <TemplateColumn Title="Callsign" IsDefaultSort="SortDirection.Auto">
-                <a href="https://webeye.ivao.aero/?airportId=@context.Callsign.Split('_').FirstOrDefault()" title="@string.Join(Environment.NewLine, context.Atis?.Lines ?? Array.Empty<string>())">@context.Callsign</a>
-            </TemplateColumn>
-            <PropertyColumn Title="Frequency" Property="c => c.AtcSession.Frequency" Format="000.0##" />
-        </QuickGrid>
-    }
-    else
-    {
+<FullwidthContainer>
+    <ContainerColumn>
+        <div class="align-middle text-center flex-column h-100">
+            <span class="oi oi-audio text-primary display-1" />
+            <p class="display-4">Who's On?</p>
+        </div>
+    </ContainerColumn>
+    <ContainerColumn>
+        <div class="rounded bg-secondary bg-gradient p-4 h-100">
+            @if (_controllers?.Any() ?? false)
+            {
+                <table class="table table-borderless text-light">
+                    <thead>
+                        <tr>
+                            <th scope="col">Callsign</th>
+                            <th scope="col">Frequency</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var context in _controllers)
+                        {
+                            <tr>
+                                <th scope="row" href="https://webeye.ivao.aero/?airportId=@context.Callsign.Split('_').FirstOrDefault()" title="@string.Join(Environment.NewLine, context.Atis?.Lines ?? Array.Empty<string>())">@context.Callsign</th>
+                                <td>@context.AtcSession.Frequency.ToString("000.0##")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
 
-    }
-</div>
+            }
+        </div>
+    </ContainerColumn>
+</FullwidthContainer>
 
 @code {
     IEnumerable<ATC>? _controllers = null;
@@ -31,7 +52,7 @@
 
     async Task UpdateAsync()
     {
-        _controllers = (await Whazzup.GetFeedAsync())?.Clients.Atcs; //.Where(c => WhazzupService.IsXAPosition(c.Callsign));
+        _controllers = (await Whazzup.GetFeedAsync())?.Clients.Atcs.Where(c => WhazzupService.IsXAPosition(c.Callsign));
         await InvokeAsync(StateHasChanged);
     }
 }

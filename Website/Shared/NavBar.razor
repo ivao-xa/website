@@ -1,0 +1,15 @@
+﻿<nav class="navbar navbar-light bg-light static-top">
+    <div class="container">
+        <a class="navbar-brand" href="/"><img src="img/xa_logo.svg" title="IVAO XA logo" style="height: 2.5ex;" class="m-1" />IVAO XA</a>
+        <Authenticated>
+            <span>@(_greetings[System.Random.Shared.Next(_greetings.Length)]), <a href="https://ivao.aero/Member.aspx?ID=@context.Vid" target="_blank">@context.FirstName</a>!</span>
+        </Authenticated>
+    </div>
+</nav>
+
+@code {
+    private readonly string[] _greetings = new[]
+    {
+        "Hello", "Greetings", "Good day", "Salutations", "Howdy", "'Sup", "Hey", "How's it going", "What's up", "Blue skies"
+    };
+}
