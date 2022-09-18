@@ -26,22 +26,22 @@
                 <tr class="align-middle">
                     <th scope="row"><a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;">@user.Vid</a></th>
                     <td>@user.FirstName @user.LastName</td>
-                    <td><img src="https://status.ivao.aero/R/@(user.Vid).png" alt="@user.Vid" /></td>
-                    <td><img src="https://ivao.aero/data/images/ratings/atc/@((int)user.RatingAtc!.Value).gif" alt="@user.RatingAtc" /></td>
+                    <td><img src="https://status.ivao.aero/R/@(user.Vid).png" title="@user.Vid" /></td>
+                    <td><img src="https://ivao.aero/data/images/ratings/atc/@((int)user.RatingAtc!.Value).gif" title="@user.RatingAtc" /></td>
                     <td>
                         <div class="d-flex flex-row">
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS2)">DEL/GND</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS3)">TWR</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.ADC)">APP/DEP</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.APC)">CTR</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS1, AtcRating.AS3)">DEL/GND</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS2, AtcRating.ADC)">TWR</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.ADC, AtcRating.APC)">APP/DEP</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.APC, AtcRating.ACC)">CTR</button>
                         </div>
                     </td>
                     <td>
                         <div class="d-flex flex-row">
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS2)">DEL/GND</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS3)">TWR</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.ADC)">APP/DEP</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.APC)">CTR</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS1, AtcRating.AS3)">DEL/GND</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS2, AtcRating.ADC)">TWR</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.ADC, AtcRating.APC)">APP/DEP</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.APC, AtcRating.ACC)">CTR</button>
                         </div>
                     </td>
                     <td>
@@ -99,10 +99,10 @@
         StateHasChanged();
     }
 
-    private string GetButtonClasses(AtcRating atcRating, AtcRating requiredRating) =>
-        atcRating < requiredRating
+    private string GetButtonClasses(AtcRating atcRating, AtcRating trainingRating, AtcRating completeRating) =>
+        atcRating < trainingRating
         ? "btn btn-outline-secondary btn-sm m-1"
-        : atcRating == requiredRating
-          ? "btn btn-info btn-sm m-1"
-          : "btn btn-success btn-sm m-1";
+        : atcRating >= completeRating
+          ? "btn btn-success btn-sm m-1"
+          : "btn btn-info btn-sm m-1";
 }

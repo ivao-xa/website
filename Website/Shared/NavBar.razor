@@ -1,4 +1,9 @@
-﻿<nav class="navbar navbar-dark bg-dark sticky-top">
+﻿@using Microsoft.EntityFrameworkCore
+@using Website.Data
+@inject WhazzupService Whazzup
+@inject IDbContextFactory<WebsiteContext> ContextFactory
+
+<nav class="navbar navbar-dark bg-dark sticky-top">
     <div class="container">
         <div class="d-flex align-items-center justify-content-between" style="width: 100%;">
             <a class="navbar-brand" href="/"><img src="img/logo_white.svg" title="IVAO XA logo" style="height: 2.5ex;" class="m-1" /></a>
@@ -12,8 +17,18 @@
             </div>
             <Authenticated>
                 <ChildContent>
-                    <span class="text-muted">@(_greetings[System.Random.Shared.Next(_greetings.Length)]), <a href="https://ivao.aero/Member.aspx?ID=@context.Vid" target="_blank">@context.FirstName</a>!</span>
+                    <div>
+                        <span class="text-muted">@(_greetings[System.Random.Shared.Next(_greetings.Length)]), <a href="https://ivao.aero/Member.aspx?ID=@context.Vid" target="_blank">@context.FirstName</a>!</span>
+                        @{
+                            _currentUser = context;
+                        }
+                        @if (_currentController is not null)
+                        {
+                            <button type="button" class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#controllerProcedureModal">@(_currentController.Value.Callsign)</button>
+                        }
+                    </div>
                 </ChildContent>
+
                 <Loading>
                     <span class="text-muted">Authenticating&hellip;</span>
                 </Loading>
@@ -22,9 +37,70 @@
     </div>
 </nav>
 
+@if (_currentController is ATC context)
+{
+    <div class="modal fade" id="controllerProcedureModal" aria-hidden="true" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        You are currently controlling @(context.Callsign)
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Here are the relevant procedures for your position:</p>
+                    <div class="d-flex flex-column">
+                        @if (context.Callsign[1] != 'Z' && context.Callsign[0] == 'K')
+                        {
+                            <a href="http://airnav.com/airport/@(context.Callsign.Split('_')[0])" target="_blank">AirNav</a>
+                        }
+
+                        @foreach (Document doc in _currentDocuments ?? Array.Empty<Document>())
+                        {
+                            <a href="@doc.Path" target="_blank">@doc.Name</a>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private readonly string[] _greetings = new[]
     {
         "Hello", "Greetings", "Good day", "Salutations", "Howdy", "Hey", "How's it going", "What's up", "Blue skies"
     };
+
+    ATC? _currentController = null;
+    User? _currentUser = null;
+    Document[]? _currentDocuments = null;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        Timer t = new(async _ => await UpdateAsync(), null, 0, 5000);
+    }
+
+    async Task UpdateAsync()
+    {
+        if (_currentUser is null)
+            return;
+
+        _currentController = (await Whazzup.GetFeedAsync())?.Clients.Atcs.Select(a => (ATC?)a).FirstOrDefault(a => a?.UserId == _currentUser.Vid);
+        if (_currentController is not null)
+        {
+            var context = await ContextFactory.CreateDbContextAsync();
+            var tmp = context.Documents.AsNoTracking().ToArray();
+            _currentDocuments = tmp.Where(d => d.Positions.Split(':').Contains(_currentController.Value.Callsign.Split('_')[0])).ToArray();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
 }

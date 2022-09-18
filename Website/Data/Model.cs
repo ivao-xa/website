@@ -13,6 +13,7 @@ public class WebsiteContext : DbContext
 {
 	public DbSet<User> Users { get; set; }
 	public DbSet<DeviationReport> Deviations { get; set; }
+	public DbSet<Document> Documents { get; set; }
 
 	public WebsiteContext(DbContextOptions<WebsiteContext> options) : base(options) { }
 }
@@ -91,6 +92,17 @@ public class DeviationReport
 	public string? Callsign { get; set; }
 	public string Body { get; set; } = string.Empty;
 	public DateTime FilingTime { get; set; } = DateTime.UtcNow;
+}
+
+[Table("Documents")]
+public class Document
+{
+	public int Id { get; set; }
+
+	public string Name { get; set; } = string.Empty;
+	public string Path { get; set; } = string.Empty;
+	public string Positions { get; set; } = string.Empty;
+	public string Departments { get; set; } = string.Empty;
 }
 
 // https://www.svrz.com/unable-to-resolve-service-for-type-microsoft-entityframeworkcore-storage-typemappingsourcedependencies/
