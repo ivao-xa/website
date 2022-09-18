@@ -1,0 +1,46 @@
+[
+    {
+        "Name": "[─BOT-INFO—]",
+        "Channels": [
+            {
+                "Name": "rules",
+                "Permissions": {
+                    "Deny": [],
+                    "Read": [
+                        "bot-member"
+                    ],
+                    "Write": []
+                },
+                "Messages": [
+                    "**Divisional Discord Rules**\n\n**1)** Be respectful to everyone.\n**2)** If you are asked by a moderator to stop doing something, stop.\n**3)**Do not be disruptive. This includes hijacking threads, voice channels or overriding a conversation.\n**4)** NSFW & NSFL content is not permitted. This is a ZERO Tolerance Policy.\n**5)** Political and religious topics are not permitted.\n**6)** Please keep your live-streams aviation related.\n**7)** The use of self-bots is not permitted. If you think a bot would benefit our server, speak to a staff member.\n**8)** No trolling, spamming, or hate speech.\n**9)** A staff member's decision is final.\n\n**For appeals of a Discord ban, please email xa-hq@ivao.aero**"
+                ]
+            }
+        ],
+        "Permissions": {
+            "Read": [
+                "bot-member"
+            ],
+            "Write": []
+        }
+    },
+    {
+        "Name": "[─BOT-QUARANTINE—]",
+        "Channels": [
+            {
+                "Name": "active-controllers",
+                "Permissions": {
+                    "Read": [
+                        "bot-member"
+                    ],
+                    "Write": []
+                }
+            }
+        ],
+        "Permissions": {
+            "Read": [
+                "bot-member"
+            ],
+            "Write": []
+        }
+    }
+]
