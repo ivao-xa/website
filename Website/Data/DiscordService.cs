@@ -71,8 +71,8 @@ public class DiscordService
         return result;
     }
 
-    private Dictionary<int, ulong> _snowflakingIds = new();
-    private SemaphoreSlim _snowflakingSemaphore = new(1);
+    private readonly Dictionary<int, ulong> _snowflakingIds = new();
+    private readonly SemaphoreSlim _snowflakingSemaphore = new(1);
     public async Task<ulong> RequestSnowflakeAsync(string channel, User user)
     {
         if (FindTextChannelByName(channel) is not SocketTextChannel stc)
@@ -194,7 +194,7 @@ public class DiscordService
 
     private async Task LaunchAsync(string token, WhazzupService whazzup)
     {
-        Dictionary<int, User?> trackedControllers = new();
+        Dictionary<ATC, User?> trackedControllers = new();
 
         _client.Log += LogAsync;
         _client.MessageReceived += async msg =>
@@ -223,6 +223,45 @@ public class DiscordService
             //while (ivao.CategoryChannels.Any(c => !config.Any(cc => c.Name == cc.Name)))
             //    await ivao.GetCategoryChannel(ivao.CategoryChannels.First(c => !config.Any(cc => c.Name == cc.Name)).Id)?.DeleteAsync();
 
+            IEnumerable<Overwrite> getOverwrites(DiscordConfigPermissions perms)
+            {
+                OverwritePermissions readPerms = new(viewChannel: PermValue.Allow, connect: PermValue.Allow);
+                OverwritePermissions writePerms = new(
+                    viewChannel: PermValue.Allow, sendMessages: PermValue.Allow, sendMessagesInThreads: PermValue.Allow,
+                    attachFiles: PermValue.Allow, addReactions: PermValue.Allow,
+                    connect: PermValue.Allow, speak: PermValue.Allow
+                );
+                OverwritePermissions adminPerms = new(1 << 3, 0);
+
+                Dictionary<string, (ulong Id, PermissionTarget Target)> targets = new();
+                foreach (var p in perms.Read.Concat(perms.Write).Concat(perms.Admin))
+                {
+                    if (p == "*")
+                        targets.TryAdd(p, (ivao.EveryoneRole.Id, PermissionTarget.Role));
+                    else if (ulong.TryParse(p, out ulong rid) && ivao.GetRole(rid) is SocketRole sr1)
+                        targets.TryAdd(p, (rid, PermissionTarget.Role));
+                    else if (ivao.Roles.FirstOrDefault(r => r.Name.Equals(p, StringComparison.InvariantCultureIgnoreCase)) is SocketRole sr2)
+                        targets.TryAdd(p, (sr2.Id, PermissionTarget.Role));
+                    else if (ulong.TryParse(p, out ulong uid) && ivao.GetUser(uid) is SocketGuildUser su1)
+                        targets.TryAdd(p, (su1.Id, PermissionTarget.User));
+                    else if (ivao.Users.FirstOrDefault(u => u.DisplayName.Equals(p, StringComparison.InvariantCultureIgnoreCase)) is SocketGuildUser su2)
+                        targets.TryAdd(p, (su2.Id, PermissionTarget.User));
+                    else
+                        Console.Error.WriteLine("Unknown role/user " + p);
+                }
+
+                yield return new Overwrite(ivao.EveryoneRole.Id, PermissionTarget.Role, new(viewChannel: PermValue.Deny));
+
+                foreach (var rp in perms.Read.Where(r => targets.ContainsKey(r)))
+                    yield return new Overwrite(targets[rp].Id, targets[rp].Target, readPerms);
+
+                foreach (var rp in perms.Write.Where(r => targets.ContainsKey(r)))
+                    yield return new Overwrite(targets[rp].Id, targets[rp].Target, writePerms);
+
+                foreach (var rp in perms.Admin.Where(r => targets.ContainsKey(r)))
+                    yield return new Overwrite(targets[rp].Id, targets[rp].Target, adminPerms);
+            }
+
             // Check all current categories
             foreach (var category in config)
             {
@@ -234,45 +273,6 @@ public class DiscordService
                         continue;
 
                     scc = tmp;
-                }
-
-                IEnumerable<Overwrite> getOverwrites(DiscordConfigPermissions perms)
-                {
-                    OverwritePermissions readPerms = new(viewChannel: PermValue.Allow, connect: PermValue.Allow);
-                    OverwritePermissions writePerms = new(
-                        viewChannel: PermValue.Allow, sendMessages: PermValue.Allow, sendMessagesInThreads: PermValue.Allow,
-                        attachFiles: PermValue.Allow, addReactions: PermValue.Allow,
-                        connect: PermValue.Allow, speak: PermValue.Allow
-                    );
-                    OverwritePermissions adminPerms = new(1 << 3, 0);
-
-                    Dictionary<string, (ulong Id, PermissionTarget Target)> targets = new();
-                    foreach (var p in perms.Read.Concat(perms.Write).Concat(perms.Admin))
-                    {
-                        if (p == "*")
-                            targets.TryAdd(p, (ivao.EveryoneRole.Id, PermissionTarget.Role));
-                        else if (ulong.TryParse(p, out ulong rid) && ivao.GetRole(rid) is SocketRole sr1)
-                            targets.TryAdd(p, (rid, PermissionTarget.Role));
-                        else if (ivao.Roles.FirstOrDefault(r => r.Name.Equals(p, StringComparison.InvariantCultureIgnoreCase)) is SocketRole sr2)
-                            targets.TryAdd(p, (sr2.Id, PermissionTarget.Role));
-                        else if (ulong.TryParse(p, out ulong uid) && ivao.GetUser(uid) is SocketGuildUser su1)
-                            targets.TryAdd(p, (su1.Id, PermissionTarget.User));
-                        else if (ivao.Users.FirstOrDefault(u => u.DisplayName.Equals(p, StringComparison.InvariantCultureIgnoreCase)) is SocketGuildUser su2)
-                            targets.TryAdd(p, (su2.Id, PermissionTarget.User));
-                        else
-                            Console.Error.WriteLine("Unknown role/user " + p);
-                    }
-
-                    yield return new Overwrite(ivao.EveryoneRole.Id, PermissionTarget.Role, new(viewChannel: PermValue.Deny));
-
-                    foreach (var rp in perms.Read.Where(r => targets.ContainsKey(r)))
-                        yield return new Overwrite(targets[rp].Id, targets[rp].Target, readPerms);
-
-                    foreach (var rp in perms.Write.Where(r => targets.ContainsKey(r)))
-                        yield return new Overwrite(targets[rp].Id, targets[rp].Target, writePerms);
-
-                    foreach (var rp in perms.Admin.Where(r => targets.ContainsKey(r)))
-                        yield return new Overwrite(targets[rp].Id, targets[rp].Target, adminPerms);
                 }
 
                 // Enforce category permissions
@@ -325,23 +325,36 @@ public class DiscordService
             }
 
             // Running online controllers view
-            if (FindTextChannelByName("_active-controllers") is SocketTextChannel botlog)
+            if (FindCategoryByName("[-ONLINE-]") is SocketCategoryChannel onlineCategory)
             {
-                ulong trackingMessage = (await botlog.SendMessageAsync(text: "Online controllers: None")).Id;
+                SocketTextChannel? botlog = FindTextChannelByName("_active-controllers");
 
-                static Embed genEmbed(KeyValuePair<int, User?> user) => new EmbedBuilder().WithCurrentTimestamp().WithDescription($"[{user.Value?.Mention ?? user.Key.ToString()} Member Page](https://ivao.aero/member?Id={user.Key})").WithImageUrl($"https://status.ivao.aero/{user.Key}.png?time={DateTime.UtcNow.Ticks}").Build();
-                Task updateAsync() => botlog.ModifyMessageAsync(trackingMessage, mp => { mp.Content = "Online controllers:"; if (trackedControllers.Any()) mp.Embeds = new(trackedControllers.Select(genEmbed).ToArray()); else mp.Content += " None"; });
+                ulong? trackingMessage = (await (botlog?.SendMessageAsync("Online controllers: None") ?? Task.FromResult<Discord.Rest.RestUserMessage?>(null)))?.Id;
+
+                static Embed genEmbed(KeyValuePair<ATC, User?> user) => new EmbedBuilder().WithCurrentTimestamp().WithDescription($"[{user.Value?.Mention ?? user.Key.ToString()} Member Page](https://ivao.aero/member?Id={user.Key})").WithImageUrl($"https://status.ivao.aero/{user.Key}.png?time={DateTime.UtcNow.Ticks}").Build();
+                async Task updateAsync()
+                {
+                    foreach (var c in onlineCategory.Channels.Where(c => c.Id != botlog?.Id && !trackedControllers.Any(v => v.Key.Callsign == c.Name)))
+                        await c.DeleteAsync();
+
+                    await (botlog?.ModifyMessageAsync(trackingMessage!.Value, mp => { mp.Content = "Online controllers:"; if (trackedControllers.Any()) mp.Embeds = new(trackedControllers.Select(genEmbed).ToArray()); else mp.Content += " None"; }) ?? Task.CompletedTask);
+                }
 
                 whazzup.AtcConnected += async controller =>
                 {
                     var context = await _webContextFactory.CreateDbContextAsync();
-                    trackedControllers.Add(controller.UserId, context.Users.AsNoTracking().First(u => u.Vid == controller.UserId));
+                    trackedControllers.Add(controller, context.Users.AsNoTracking().First(u => u.Vid == controller.UserId));
+                    await ivao.CreateVoiceChannelAsync(controller.Callsign, vcp => { vcp.CategoryId = onlineCategory.Id; vcp.PermissionOverwrites = new(getOverwrites(new() { Deny = new[] { "*" }, Read = Array.Empty<string>(), Write = new[] { "bot-member" }, Admin = new[] { "bot-administrator", "Bots" } })); });
                     await updateAsync();
                 };
 
                 whazzup.AtcDisconnected += async controller =>
                 {
-                    trackedControllers.Remove(controller.UserId);
+                    foreach (var c in trackedControllers.Where(tc => tc.Value.Vid == controller.UserId))
+                        trackedControllers.Remove(c.Key);
+
+                    await (FindVoiceChannelByName(controller.Callsign)?.DeleteAsync() ?? Task.CompletedTask);
+
                     await updateAsync();
                 };
 
@@ -356,7 +369,7 @@ public class DiscordService
                         }
                     }
                     catch { }
-                    finally { await botlog.DeleteMessageAsync(trackingMessage); }
+                    finally { foreach (var c in onlineCategory.Channels) await c.DeleteAsync(); await onlineCategory.DeleteAsync(); }
                 });
             }
         };
@@ -383,6 +396,8 @@ internal class DiscordConfigCategory
     public string Name { get; set; } = "";
     public DiscordConfigChannel[] Channels { get; set; } = Array.Empty<DiscordConfigChannel>();
     public DiscordConfigPermissions Permissions { get; set; } = new();
+
+    public override string ToString() => Name;
 }
 
 internal class DiscordConfigChannel
@@ -391,6 +406,8 @@ internal class DiscordConfigChannel
     public DiscordConfigPermissions Permissions { get; set; } = new();
     public bool Voice { get; set; } = false;
     public string[]? Messages { get; set; } = null;
+
+    public override string ToString() => Name;
 }
 
 internal class DiscordConfigPermissions

@@ -12,7 +12,9 @@
         <thead>
             <tr>
                 <th scope="col">VID</th>
-                <th scope="col">Name</th>
+                <Authenticated>
+                    <th scope="col">Name</th>
+                </Authenticated>
                 <th scope="col">Status</th>
                 <th scope="col">Rating</th>
                 <th scope="col">FAA</th>
@@ -23,9 +25,11 @@
         <tbody>
             @foreach (User user in _users ?? Array.Empty<User>())
             {
-                <tr class="align-middle">
+                <tr class="align-middle @(user.LastControlTime < DateTime.UtcNow - TimeSpan.FromDays(30) ? "table-secondary" : string.Empty)">
                     <th scope="row"><a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;">@user.Vid</a></th>
-                    <td>@user.FirstName @user.LastName</td>
+                    <Authenticated>
+                        <td>@user.FirstName @user.LastName</td>
+                    </Authenticated>
                     <td><img src="https://status.ivao.aero/R/@(user.Vid).png" title="@user.Vid" /></td>
                     <td><img src="https://ivao.aero/data/images/ratings/atc/@((int)user.RatingAtc!.Value).gif" title="@user.RatingAtc" /></td>
                     <td>
@@ -93,7 +97,7 @@
             _fras[vid].TryAdd(formatPosition, isPerpetual);
         }
 
-        var minControlTime = DateTime.UtcNow - TimeSpan.FromDays(30);
+        var minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
         var allUsers = (await ContextFactory.CreateDbContextAsync()).Users.AsNoTracking().ToArray();
         _users = allUsers.Where(u => u.RatingAtc is not null).OrderByDescending(u => u.LastControlTime).ToArray();
         StateHasChanged();

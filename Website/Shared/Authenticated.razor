@@ -7,7 +7,11 @@
 @inject IDbContextFactory<WebsiteContext> WebContextFactory
 @inject IvaoApiService Api
 
-@if (authenticatedUser is not null && ChildContent is not null)
+@if (authenticatedUser is not null && Staff is not null && !string.IsNullOrEmpty(authenticatedUser.Staff))
+{
+    @Staff(authenticatedUser)
+}
+else if (authenticatedUser is not null && ChildContent is not null)
 {
     @ChildContent(authenticatedUser)
 }
@@ -22,6 +26,9 @@ else if (Loading is not null)
 
     [Parameter]
     public RenderFragment? Loading { get; set; }
+
+    [Parameter]
+    public RenderFragment<User>? Staff { get; set; }
 
     User? authenticatedUser = null;
     static Dictionary<string, SemaphoreSlim> _pendingTokens = new();

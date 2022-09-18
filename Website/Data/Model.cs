@@ -14,6 +14,8 @@ public class WebsiteContext : DbContext
 	public DbSet<User> Users { get; set; }
 	public DbSet<DeviationReport> Deviations { get; set; }
 	public DbSet<Document> Documents { get; set; }
+	public DbSet<Event> Events { get; set; }
+	public DbSet<Exam> Trainings { get; set; }
 
 	public WebsiteContext(DbContextOptions<WebsiteContext> options) : base(options) { }
 }
@@ -105,6 +107,35 @@ public class Document
 	public string Departments { get; set; } = string.Empty;
 }
 
+[Table("Events")]
+public class Event : ICalendarItem
+{
+	public int Id { get; set; }
+
+	public string Name { get; set; } = string.Empty;
+	public DateTime Start { get; set; } = DateTime.UtcNow;
+	public DateTime End { get; set; } = DateTime.UtcNow;
+	public string Route { get; set; } = string.Empty;
+	public string Positions { get; set; } = string.Empty;
+	public string Controllers { get; set; } = string.Empty;
+}
+
+[Table("Exams")]
+public class Exam : ICalendarItem
+{
+    public int Id { get; set; }
+
+	public AtcRating Rating { get; set; }
+	public bool Mock { get; set; } = false;
+    public int Trainee { get; set; }
+    public int Trainer { get; set; }
+	public string Position { get; set; } = string.Empty;
+    public DateTime Start { get; set; } = DateTime.UtcNow;
+
+	public DateTime End => Start + TimeSpan.FromHours(2);
+	public string Name => $"{Rating} {(Mock ? "training" : "exam")} at {Position}";
+}
+
 // https://www.svrz.com/unable-to-resolve-service-for-type-microsoft-entityframeworkcore-storage-typemappingsourcedependencies/
 public class MysqlEntityFrameworkDesignTimeServices : IDesignTimeServices
 {
@@ -113,4 +144,11 @@ public class MysqlEntityFrameworkDesignTimeServices : IDesignTimeServices
 		serviceCollection.AddEntityFrameworkMySQL();
 		new EntityFrameworkRelationalDesignServicesBuilder(serviceCollection).TryAddCoreServices();
 	}
+}
+
+public interface ICalendarItem
+{
+	public DateTime Start { get; }
+	public DateTime End { get; }
+	public string Name { get; }
 }

@@ -1,6 +1,6 @@
 [
     {
-        "Name": "[─BOT-INFO—]",
+        "Name": "[-BOT-INFO-]",
         "Channels": [
             {
                 "Name": "rules",
@@ -24,7 +24,7 @@
         }
     },
     {
-        "Name": "[─BOT-QUARANTINE—]",
+        "Name": "[-ONLINE-]",
         "Channels": [
             {
                 "Name": "active-controllers",
