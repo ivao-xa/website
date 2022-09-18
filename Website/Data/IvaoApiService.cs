@@ -22,7 +22,7 @@ public class IvaoApiService
 
 		try
 		{
-			var pg1 = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page=1&perPage=100&divisionId={division}&isActive=true&members={vidBased}&positions={ratingBased}&expand=true&apiKey={_apiKey}");
+            var pg1 = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page=1&perPage=100&divisionId={division}&isActive=true&members={vidBased.ToString().ToLowerInvariant()}&positions={ratingBased.ToString().ToLowerInvariant()}&expand=true&apiKey={_apiKey}");
 
 			if (pg1 is null)
 				return null;
@@ -32,7 +32,7 @@ public class IvaoApiService
 
 			for (int page = 2; page <= pg1.pages; ++page)
 			{
-				var pg = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page={page}&perPage=100&divisionId={division}&isActive=true&members={vidBased}&positions={ratingBased}&expand=true&apiKey={_apiKey}");
+                var pg = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page={page}&perPage=100&divisionId={division}&isActive=true&members={vidBased.ToString().ToLowerInvariant()}&positions={ratingBased.ToString().ToLowerInvariant()}&expand=true&apiKey={_apiKey}");
 				if (pg is null)
 					break;
 				_fras.UnionWith(pg.items);

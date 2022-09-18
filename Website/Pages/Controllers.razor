@@ -1,0 +1,108 @@
+﻿@page "/roster"
+@page "/atc"
+@page "/controller"
+@using Microsoft.EntityFrameworkCore
+@using Website.Data
+@inject IvaoApiService Api
+@inject IDbContextFactory<WebsiteContext> ContextFactory
+
+<div class="container-fluid mt-3">
+    <h2 class="text-center">ATC Roster</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">VID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Status</th>
+                <th scope="col">Rating</th>
+                <th scope="col">FAA</th>
+                <th scope="col">NavCan</th>
+                <th scope="col">Endorsements</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (User user in _users ?? Array.Empty<User>())
+            {
+                <tr class="align-middle">
+                    <th scope="row"><a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;">@user.Vid</a></th>
+                    <td>@user.FirstName @user.LastName</td>
+                    <td><img src="https://status.ivao.aero/R/@(user.Vid).png" alt="@user.Vid" /></td>
+                    <td><img src="https://ivao.aero/data/images/ratings/atc/@((int)user.RatingAtc!.Value).gif" alt="@user.RatingAtc" /></td>
+                    <td>
+                        <div class="d-flex flex-row">
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS2)">DEL/GND</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS3)">TWR</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.ADC)">APP/DEP</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.APC)">CTR</button>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-row">
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS2)">DEL/GND</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS3)">TWR</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.ADC)">APP/DEP</button>
+                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.APC)">CTR</button>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-row">
+                            @if (_fras.TryGetValue(user.Vid, out var endorsements))
+                            {
+                                @foreach (var endorsement in endorsements)
+                                {
+                                    <span class="badge rounded-pill bg-@(endorsement.Value ? "dark" : "primary") m-1">@endorsement.Key</span>
+                                }
+                            }
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private User[]? _users = null;
+    private Dictionary<int, Dictionary<string, bool>> _fras = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_users is not null)
+            return;
+
+        foreach (Fra fra in await Api.GetFrasAsync(vidBased: true, ratingBased: false) ?? new())
+        {
+            if (fra.userId is null)
+                continue;
+
+            int vid = fra.userId.Value;
+
+            if (!_fras.ContainsKey(vid))
+                _fras.Add(vid, new());
+
+            bool isPerpetual =
+                fra.active && fra.daySun && fra.dayMon && fra.dayTue &&
+                fra.dayWed && fra.dayThu && fra.dayFri && fra.daySat &&
+                fra.startTime == "00:00:00" && fra.endTime == "00:00:00";
+
+            string formatPosition =
+                fra.atcPosition is not null
+                ? $"{fra.atcPosition.airportId} {fra.atcPosition.position}"
+                : $"{fra.subcenter!.centerId[1..]} {fra.subcenter.position}";
+
+            _fras[vid].TryAdd(formatPosition, isPerpetual);
+        }
+
+        var minControlTime = DateTime.UtcNow - TimeSpan.FromDays(30);
+        var allUsers = (await ContextFactory.CreateDbContextAsync()).Users.AsNoTracking().ToArray();
+        _users = allUsers.Where(u => u.RatingAtc is not null).OrderByDescending(u => u.LastControlTime).ToArray();
+        StateHasChanged();
+    }
+
+    private string GetButtonClasses(AtcRating atcRating, AtcRating requiredRating) =>
+        atcRating < requiredRating
+        ? "btn btn-outline-secondary btn-sm m-1"
+        : atcRating == requiredRating
+          ? "btn btn-info btn-sm m-1"
+          : "btn btn-success btn-sm m-1";
+}

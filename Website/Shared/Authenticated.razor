@@ -11,38 +11,47 @@
 {
     @ChildContent(authenticatedUser)
 }
+else if (Loading is not null)
+{
+    @Loading
+}
 
 @code {
     [Parameter]
     public RenderFragment<User>? ChildContent { get; set; }
 
+    [Parameter]
+    public RenderFragment? Loading { get; set; }
+
     User? authenticatedUser = null;
+    static Dictionary<string, SemaphoreSlim> _pendingTokens = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender)
             return;
 
-        string url = NavManager.Uri;
-        if (!url.Contains("token="))
+        Uri url = new(NavManager.Uri);
+        if (!url.Query.Contains("token="))
         {
             authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
 
             if (authenticatedUser is null)
-                NavManager.NavigateTo($"https://login.ivao.aero/index.php?url=https%3A%2F%2Fxa.ivao.aero%2Flogin_redirect.php%3Fredir_to%3D{Uri.EscapeDataString(Uri.EscapeDataString(url))}");
+                NavManager.NavigateTo($"https://login.ivao.aero/index.php?url=https%3A%2F%2Fxa.ivao.aero%2Flogin_redirect.php%3Fredir_to%3D{Uri.EscapeDataString(Uri.EscapeDataString(NavManager.Uri))}");
 
             await InvokeAsync(StateHasChanged);
             return;
         }
 
-        string token = url.Split("token=")[1];
+        string token = url.Query.Split("token=")[1];
 
         await LoginSrv.RegisterUserAsync(token);
         authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
+
         if (authenticatedUser is not null)
             await CheckDiscordRoles(authenticatedUser);
 
-        NavManager.NavigateTo(new Uri(url).GetLeftPart(UriPartial.Path));
+        NavManager.NavigateTo(url.GetLeftPart(UriPartial.Path));
         await InvokeAsync(StateHasChanged);
     }
 
@@ -53,6 +62,9 @@
 
         if (user is null)
             return;
+
+        if (user.Snowflake is null)
+            user.Snowflake = await Discord.RequestSnowflakeAsync("bot-log", user);
 
         await Discord.EnforceRolesAsync(user, Api);
         await db.SaveChangesAsync();

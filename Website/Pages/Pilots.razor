@@ -1,0 +1,44 @@
+﻿@page "/pilot"
+@using Microsoft.EntityFrameworkCore
+@using Website.Data
+@inject IDbContextFactory<WebsiteContext> ContextFactory
+
+<div class="container-fluid mt-3">
+    <h2 class="text-center">Pilot Roster</h2>
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">VID</th>
+                <th scope="col">Name</th>
+                <th scope="col">Status</th>
+                <th scope="col">Rating</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (User user in _users ?? Array.Empty<User>())
+            {
+                <tr class="align-middle">
+                    <th scope="row"><a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;">@user.Vid</a></th>
+                    <td>@user.FirstName @user.LastName</td>
+                    <td><img src="https://status.ivao.aero/R/@(user.Vid).png" alt="@user.Vid" /></td>
+                    <td><img src="https://ivao.aero/data/images/ratings/pilot/@((int)user.RatingPilot!.Value).gif" alt="@user.RatingPilot" /></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private User[]? _users = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_users is not null)
+            return;
+
+        var minFlyTime = DateTime.UtcNow - TimeSpan.FromDays(30);
+        var allUsers = (await ContextFactory.CreateDbContextAsync()).Users.AsNoTracking().ToArray();
+        _users = allUsers.Where(u => u.RatingPilot is not null).OrderByDescending(u => u.LastPilotTime).ToArray();
+        StateHasChanged();
+    }
+}
