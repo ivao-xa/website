@@ -34,18 +34,24 @@
                     <td><img src="https://ivao.aero/data/images/ratings/atc/@((int)user.RatingAtc!.Value).gif" title="@user.RatingAtc" /></td>
                     <td>
                         <div class="d-flex flex-row">
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS1, AtcRating.AS3)">DEL/GND</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS2, AtcRating.ADC)">TWR</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.ADC, AtcRating.APC)">APP/DEP</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.APC, AtcRating.ACC)">CTR</button>
+                            <Authenticated RequiredRoles="DiscordRoles.Training">
+                                <button type="button" class="btn btn-@(user.FaaChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, false)">FAA</button>
+                            </Authenticated>
+                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, false)">DEL/GND</button>
+                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, false)">TWR</button>
+                            <button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, false)">APP/DEP</button>
+                            <button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, false)">CTR</button>
                         </div>
                     </td>
                     <td>
                         <div class="d-flex flex-row">
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS1, AtcRating.AS3)">DEL/GND</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.AS2, AtcRating.ADC)">TWR</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.ADC, AtcRating.APC)">APP/DEP</button>
-                            <button type="button" class="@GetButtonClasses(user.RatingAtc ?? AtcRating.AS1, AtcRating.APC, AtcRating.ACC)">CTR</button>
+                            <Authenticated RequiredRoles="DiscordRoles.Training">
+                                <button type="button" class="btn btn-@(user.NavCanChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, true)">NavCan</button>
+                            </Authenticated>
+                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, true)">DEL/GND</button>
+                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, true)">TWR</button>
+                            <button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, true)">APP/DEP</button>
+                            <button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, true)">CTR</button>
                         </div>
                     </td>
                     <td>
@@ -97,16 +103,37 @@
             _fras[vid].TryAdd(formatPosition, isPerpetual);
         }
 
+        UpdateUsers(await ContextFactory.CreateDbContextAsync());
+    }
+
+    private void UpdateUsers(WebsiteContext context)
+    {
         var minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
-        var allUsers = (await ContextFactory.CreateDbContextAsync()).Users.AsNoTracking().ToArray();
+        var allUsers = context.Users.AsNoTracking().ToArray();
         _users = allUsers.Where(u => u.RatingAtc is not null).OrderByDescending(u => u.LastControlTime).ToArray();
         StateHasChanged();
     }
 
-    private string GetButtonClasses(AtcRating atcRating, AtcRating trainingRating, AtcRating completeRating) =>
-        atcRating < trainingRating
-        ? "btn btn-outline-secondary btn-sm m-1"
-        : atcRating >= completeRating
-          ? "btn btn-success btn-sm m-1"
-          : "btn btn-info btn-sm m-1";
+    private string GetButtonClasses(User user, AtcRating trainingRating, AtcRating completeRating, bool canada) =>
+        ((!canada && !user.FaaChecked) || (canada && !user.NavCanChecked) || (user.RatingAtc < trainingRating))
+        ? "btn btn-outline-secondary btn-sm m-1 col"
+        : user.RatingAtc >= completeRating
+          ? "btn btn-success btn-sm m-1 col"
+          : "btn btn-info btn-sm m-1 col";
+
+    private async Task CheckoutAsync(User? user, bool canada)
+    {
+        var context = await ContextFactory.CreateDbContextAsync();
+        user = await context.Users.FindAsync(user?.Vid ?? 0);
+        if (user is null)
+            return;
+
+        if (canada)
+            user.NavCanChecked = !user.NavCanChecked;
+        else
+            user.FaaChecked = !user.FaaChecked;
+
+        await context.SaveChangesAsync();
+        UpdateUsers(context);
+    }
 }

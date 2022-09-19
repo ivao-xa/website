@@ -18,8 +18,8 @@
                     {
                         <tr>
                             <th scope="row">@item.Name</th>
-                            <td>@item.Start.ToShortDateString()</td>
-                            <td>@item.Start.ToShortTimeString()</td>
+                            <td>@item.Start.ToString("MM/dd")</td>
+                            <td>@item.Start.ToString("HH:mm")</td>
                         </tr>
                     }
                 </tbody>
@@ -48,8 +48,12 @@
     async Task UpdateAsync()
     {
         var context = await ContextFactory.CreateDbContextAsync();
-        var trainings = context.Trainings.Cast<ICalendarItem>().ToArray();
-        _upcoming = trainings.Concat(context.Events.Cast<ICalendarItem>().ToArray()).OrderByDescending(i => i.Start);
+        try
+        {
+            var trainings = context.Trainings.Cast<ICalendarItem>().ToArray();
+            _upcoming = trainings.Concat(context.Events.Cast<ICalendarItem>().ToArray()).OrderByDescending(i => i.Start);
+        }
+        catch { }
         await InvokeAsync(StateHasChanged);
     }
 }

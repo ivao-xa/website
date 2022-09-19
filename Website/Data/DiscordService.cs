@@ -134,6 +134,8 @@ public class DiscordService
                 yield return 1012842037705445496UL; // bot-64
             if (roles.HasFlag(DiscordRoles.Membership))
                 yield return 1012841935339278428UL; // bot-128
+            if (roles.HasFlag(DiscordRoles.Events))
+                yield return 1021270560770113558UL; // bot-256
             if (roles.HasFlag(DiscordRoles.Administrator))
                 yield return 1012841779961282661UL; // bot-max
         }
@@ -149,6 +151,7 @@ public class DiscordService
 
         Regex trainer = new(@"\bXA-T[A0]");
         Regex membership = new(@"\bXA-M(AC?|C)");
+        Regex events = new(@"\bXA-E(AC?|C)");
         void setFlag(bool set, DiscordRoles flag)
         {
             if (set)
@@ -159,6 +162,7 @@ public class DiscordService
 
         setFlag(user.Staff is not null && trainer.IsMatch(user.Staff), DiscordRoles.Training);
         setFlag(user.Staff is not null && membership.IsMatch(user.Staff), DiscordRoles.Membership);
+        setFlag(user.Staff is not null && events.IsMatch(user.Staff), DiscordRoles.Events);
 
         bool isMember = (await api.GetCountriesAsync()).SelectMany(c => new[] { c.id, c.divisionId }).Contains(user.Division);
         setFlag(isMember && !string.IsNullOrEmpty(user.Staff), DiscordRoles.Staff);
@@ -331,13 +335,29 @@ public class DiscordService
 
                 ulong? trackingMessage = (await (botlog?.SendMessageAsync("Online controllers: None") ?? Task.FromResult<Discord.Rest.RestUserMessage?>(null)))?.Id;
 
-                static Embed genEmbed(KeyValuePair<ATC, User?> user) => new EmbedBuilder().WithCurrentTimestamp().WithDescription($"[{user.Value?.Mention ?? user.Key.ToString()} Member Page](https://ivao.aero/member?Id={user.Key})").WithImageUrl($"https://status.ivao.aero/{user.Key}.png?time={DateTime.UtcNow.Ticks}").Build();
+                static Embed genEmbed(KeyValuePair<ATC, User?> user, string uniqueData) =>
+                    new EmbedBuilder()
+                    .WithCurrentTimestamp()
+                    .WithDescription($"[{user.Value?.Mention ?? user.Key.ToString()} Member Page](https://ivao.aero/member?Id={user.Key})")
+                    .WithImageUrl($"https://status.ivao.aero/{user.Key.UserId}.png?time={uniqueData}").Build();
+
                 async Task updateAsync()
                 {
                     foreach (var c in onlineCategory.Channels.Where(c => c.Id != botlog?.Id && !trackedControllers.Any(v => v.Key.Callsign == c.Name)))
                         await c.DeleteAsync();
 
-                    await (botlog?.ModifyMessageAsync(trackingMessage!.Value, mp => { mp.Content = "Online controllers:"; if (trackedControllers.Any()) mp.Embeds = new(trackedControllers.Select(genEmbed).ToArray()); else mp.Content += " None"; }) ?? Task.CompletedTask);
+                    await (
+                        botlog?.ModifyMessageAsync(
+                            trackingMessage!.Value,
+                            mp => {
+                                mp.Content = "Online controllers:";
+                                if (trackedControllers.Any())
+                                    mp.Embeds = new(trackedControllers.Select(v => genEmbed(v, DateTime.UtcNow.Ticks.ToString()[^5..])).ToArray());
+                                else
+                                    mp.Content += " None";
+                            }
+                        ) ?? Task.CompletedTask
+                    );
                 }
 
                 whazzup.AtcConnected += async controller =>

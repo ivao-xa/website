@@ -50,7 +50,9 @@ public class IvaoLoginService
 				RatingPilot = (PilotRating)json.RatingPilot,
 				Division = json.Division,
 				Country = json.Country,
-				Staff = string.Join(':', json.Staff.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+				Staff = string.Join(':', json.Staff.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)),
+				FaaChecked = json.Country != "CA",
+				NavCanChecked = json.Country == "CA"
 			};
 			await db.Users.AddAsync(user);
 		}

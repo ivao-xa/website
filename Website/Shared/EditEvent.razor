@@ -1,0 +1,61 @@
+﻿@page "/event/edit"
+@using Microsoft.EntityFrameworkCore
+@using Website.Data
+@inject IDbContextFactory<WebsiteContext> ContextFactory
+
+<div class="container">
+    <Authenticated RequiredRoles="DiscordRoles.Events">
+        <Staff>
+            @if (Event is not null)
+            {
+                <form>
+                    <div class="mb-3 row">
+                        <div class="col-auto"><label for="eventName" class="form-label">Event Name</label></div>
+                        <div class="col-auto flex-grow-1"><input type="text" class="form-control" name="eventName" @bind="Event.Name" /></div>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-auto"><label for="eventStart" class="form-label">Start</label></div>
+                        <div class="col-auto flex-grow-1"><input type="datetime-local" class="form-control" name="eventStart" @bind="Event.Start" /></div>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-auto"><label for="eventEnd" class="form-label">End</label></div>
+                        <div class="col-auto flex-grow-1"><input type="datetime-local" class="form-control" name="eventEnd" @bind="Event.End" /></div>
+                    </div>
+                    <div class="mb-3 row">
+                        <div class="col-auto"><label for="eventRoute" class="form-label">Route</label></div>
+                        <div class="col-auto flex-grow-1"><textarea type="text" class="form-control" name="eventRoute" @bind="Event.Route" /></div>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <span>Event not found</span>
+            }
+        </Staff>
+        <Unauthorized>
+            <span>Contact a member of the events team to edit this event.</span>
+        </Unauthorized>
+        <Loading>
+            <span>Loading event from database&hellip;</span>
+        </Loading>
+    </Authenticated>
+</div>
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "id")]
+    public int? EventId { get; set; } = null;
+
+    [Parameter]
+    public Event? Event { get; set; } = null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (EventId is null && Event is null)
+            throw new ArgumentNullException(nameof(EventId));
+
+        var context = await ContextFactory.CreateDbContextAsync();
+
+        Event = await context.Events.FindAsync(EventId ?? Event!.Id);
+    }
+}

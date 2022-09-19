@@ -1,0 +1,54 @@
+﻿@page "/register/{SnowflakeStr}"
+@using Microsoft.EntityFrameworkCore
+@using Website.Data
+@inject IDbContextFactory<WebsiteContext> ContextFactory
+@inject NavigationManager NavManager
+
+<Authenticated>
+    <ChildContent>
+        @if (snowflake == 0)
+        {
+            <span>
+                Hmm, something didn't work. Try again maybe?
+            </span>
+        }
+        else
+        {
+            _ = RegisterAsync(context);
+            <span>
+                Hello, @context.FirstName! Thanks for registering with our Discord! Standby to be redirected to our homepage.
+            </span>
+            NavManager.NavigateTo("/", true);
+        }
+    </ChildContent>
+    <Loading>
+        Registering&hellip;
+    </Loading>
+</Authenticated>
+
+@code {
+    [Parameter]
+    public string SnowflakeStr { get; set; } = "";
+
+    private ulong snowflake;
+
+    protected override void OnParametersSet()
+    {
+        if (ulong.TryParse(SnowflakeStr, out ulong snowflake))
+            this.snowflake = snowflake;
+
+        base.OnParametersSet();
+    }
+
+    private async Task RegisterAsync(User user)
+    {
+        if (snowflake == 0)
+            return;
+
+        var context = await ContextFactory.CreateDbContextAsync();
+        user = context.Users.Find(user.Vid)!;
+        user.Snowflake = snowflake;
+        await context.SaveChangesAsync();
+        StateHasChanged();
+    }
+}

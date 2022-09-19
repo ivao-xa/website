@@ -7,13 +7,23 @@
 @inject IDbContextFactory<WebsiteContext> WebContextFactory
 @inject IvaoApiService Api
 
-@if (authenticatedUser is not null && Staff is not null && !string.IsNullOrEmpty(authenticatedUser.Staff))
+@if (authenticatedUser is not null)
 {
-    @Staff(authenticatedUser)
-}
-else if (authenticatedUser is not null && ChildContent is not null)
-{
-    @ChildContent(authenticatedUser)
+    @if (authenticatedUser.Roles.HasFlag(DiscordRoles.Administrator) || authenticatedUser.Roles.HasFlag(RequiredRoles))
+    {
+        @if (Staff is not null && !string.IsNullOrEmpty(authenticatedUser.Staff))
+        {
+            @Staff(authenticatedUser)
+        }
+        else if (ChildContent is not null)
+        {
+            @ChildContent(authenticatedUser)
+        }
+    }
+    else if (Unauthorized is not null)
+    {
+        @Unauthorized(authenticatedUser)
+    }
 }
 else if (Loading is not null)
 {
@@ -29,6 +39,12 @@ else if (Loading is not null)
 
     [Parameter]
     public RenderFragment<User>? Staff { get; set; }
+
+    [Parameter]
+    public RenderFragment<User>? Unauthorized { get; set; }
+
+    [Parameter]
+    public DiscordRoles RequiredRoles { get; set; } = (DiscordRoles)0;
 
     User? authenticatedUser = null;
     static Dictionary<string, SemaphoreSlim> _pendingTokens = new();

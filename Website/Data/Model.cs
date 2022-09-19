@@ -39,8 +39,13 @@ public class User
 	public string? Country { get; set; }
 	public string? Staff { get; set; }
 
+	public bool FaaChecked { get; set; } = true;
+	public bool NavCanChecked { get; set; } = false;
+
 	[NotMapped]
 	public string Mention => Snowflake is ulong l ? $"<@{l}>" : Vid.ToString("000000");
+
+	public override string ToString() => $"{Vid} ({FirstName} {LastName})";
 }
 
 [Flags]
@@ -54,6 +59,7 @@ public enum DiscordRoles : ulong
 
 	Training	= 0b0001_00_00_00,
 	Membership	= 0b0010_00_00_00,
+	Events		= 0b0100_00_00_00,
 
 	Administrator = 0x8_00000_0000_00_00_00L
 }

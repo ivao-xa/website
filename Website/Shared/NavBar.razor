@@ -46,7 +46,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        You are currently controlling @(context.Callsign)
+                        You are currently controlling @(context.Atis is not null && context.Atis.Value.Lines.Length > 1 ? context.Atis.Value.Lines[1] : context.Callsign)
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
