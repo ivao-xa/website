@@ -20,7 +20,21 @@
                     @foreach (User user in _users ?? Array.Empty<User>())
                     {
                         <tr class="align-middle @(user.LastPilotTime < DateTime.UtcNow - TimeSpan.FromDays(30) ? "table-secondary" : string.Empty)">
-                            <th scope="row"><a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;">@user.Vid</a></th>
+                            <th scope="row">
+                                @if (string.IsNullOrEmpty(user.Staff))
+                                {
+                                    <a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;" target="_blank">@user.Vid</a>
+                                }
+                                else
+                                {
+                                    @foreach (string staffPos in user.Staff.Split(':'))
+                                    {
+                                        bool localStaff = staffPos.StartsWith("XA-") || (staffPos.Contains('-') && "KC".Contains(staffPos[0]));
+
+                                        <a href="https://ivao.aero/member?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m-1" style="text-decoration-line: none;" target="_blank">@staffPos</a>
+                                    }
+                                }
+                            </th>
                             <td>@user.FirstName @user.LastName</td>
                             <td><img src="https://status.ivao.aero/R/@(user.Vid).png" title="@user.Vid" /></td>
                             <td><img src="https://ivao.aero/data/images/ratings/pilot/@((int)user.RatingPilot!.Value).gif" title="@user.RatingPilot" /></td>

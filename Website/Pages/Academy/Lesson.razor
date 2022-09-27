@@ -1,0 +1,146 @@
+﻿@page "/training/lesson/{*Filepath}"
+@using Markdig
+
+<div class="d-flex flex-row w-100">
+    @if (!_edit)
+    {
+        <ul class="nav nav-pills flex-column p-1 border-end bg-dark">
+            @foreach (string filepath in Directory.EnumerateFileSystemEntries(Path.GetDirectoryName(Filepath) ?? "academy").Where(p => !Path.GetFileName(p).Equals("readme.md", StringComparison.InvariantCultureIgnoreCase)))
+            {
+                <li class="nav-item">
+                    <NavLink href="@Path.Combine("training", "lesson", Path.ChangeExtension(Path.GetRelativePath("academy", filepath), null))" class="nav-link text-capitalize">@Path.GetFileNameWithoutExtension(filepath)</NavLink>
+                </li>
+            }
+        </ul>
+    }
+    <div class="my-3 col">
+        <Authenticated RequiredRoles="Data.DiscordRoles.Training">
+            <ChildContent>
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col position-relative me-1">
+                            <span class="text-@(_edit ? "primary" : "muted") oi oi-pencil position-absolute end-0 m-3" @onclick="() => _edit = !_edit" />
+                            @_htmlContent
+                        </div>
+
+                        @if (_edit)
+                        {
+                            <div class="col d-flex flex-column border-start ms-1 w-100">
+                                @if (MarkdownContent.Length > SYNCHRO_LIMIT)
+                                {
+                                    <p class="text-danger">The lesson is too large for live editing. Please message Wes for help.</p>
+                                }
+                                else
+                                {
+                                    <textarea rows="10" maxlength="@SYNCHRO_LIMIT" class="font-monospace w-100 flex-fill" @bind-value="MarkdownContent" @bind-value:event="oninput" />
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </ChildContent>
+            <Unauthorized>
+                <div class="container">
+                    @_htmlContent
+                </div>
+            </Unauthorized>
+            <Loading>
+                <div class="container">
+                    @_htmlContent
+                </div>
+            </Loading>
+        </Authenticated>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? Filepath { get; set; }
+
+    private const int SYNCHRO_LIMIT = 16294;
+
+    private bool _edit = false;
+    private string MarkdownContent
+    {
+        get => _markdownContent;
+
+        set
+        {
+            Task.Run(() =>
+            {
+                if (!_edit)
+                    return;
+
+                string directory = Path.GetDirectoryName(Filepath!) ?? "academy";
+
+                if (!Directory.Exists(directory))
+                    Directory.CreateDirectory(directory);
+
+                _markdownContent = value.ReplaceLineEndings();
+
+                lock (Filepath!)
+                {
+                    if (string.IsNullOrWhiteSpace(_markdownContent) && File.Exists(Filepath))
+                    {
+                        File.Delete(Filepath);
+
+                        if (!Directory.EnumerateFileSystemEntries(directory).Any())
+                            Directory.Delete(directory);
+                    }
+                    else
+                        File.WriteAllText(Filepath, _markdownContent);
+                }
+
+                _htmlContent = new(builder =>
+                    builder.AddMarkupContent(
+                        0,
+                        Markdown.ToHtml(
+                            _markdownContent,
+                            pipeline: _pipeline
+                        )
+                    )
+                );
+
+                _ = InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private static MarkdownPipeline _pipeline = new MarkdownPipelineBuilder().UseBootstrap().UseAdvancedExtensions().Build();
+
+    private string _markdownContent = @"# ERROR";
+    private RenderFragment _htmlContent = new(_ => { });
+
+    private const int BIND_SIZE = 15000;
+
+    protected override void OnParametersSet()
+    {
+        if (string.IsNullOrWhiteSpace(Filepath))
+            Filepath = "README";
+
+        Filepath = Path.GetFullPath(Path.Join("academy", Filepath));
+        if (!Filepath.StartsWith(Path.GetFullPath("academy")))
+            // Sombody is trying to break our paths!
+            throw new ArgumentException();
+
+        if (Directory.Exists(Filepath))
+            Filepath = Path.Join(Filepath, "README.md");
+        else
+            Filepath = Path.ChangeExtension(Filepath, ".md");
+
+        if (File.Exists(Filepath))
+            _markdownContent = File.ReadAllText(Filepath);
+        else
+            _markdownContent = @"# Select a file from the left";
+
+        _htmlContent = new(builder =>
+            builder.AddMarkupContent(
+                0,
+                Markdown.ToHtml(
+                    string.Join("", _markdownContent),
+                    pipeline: _pipeline
+                )
+            )
+        );
+    }
+}

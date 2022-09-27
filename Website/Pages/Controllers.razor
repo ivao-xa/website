@@ -16,57 +16,27 @@
                     <th scope="col">Name</th>
                 </Authenticated>
                 <th scope="col">Status</th>
-                <th scope="col">Rating</th>
+                <th scope="col" class="text-center">Rating</th>
                 <th scope="col">FAA</th>
                 <th scope="col">NavCan</th>
                 <th scope="col">Endorsements</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (User user in _users ?? Array.Empty<User>())
-            {
-                <tr class="align-middle @(user.LastControlTime < DateTime.UtcNow - TimeSpan.FromDays(30) ? "table-secondary" : string.Empty)">
-                    <th scope="row"><a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;">@user.Vid</a></th>
-                    <Authenticated>
-                        <td>@user.FirstName @user.LastName</td>
-                    </Authenticated>
-                    <td><img src="https://status.ivao.aero/R/@(user.Vid).png" title="@user.Vid" /></td>
-                    <td><img src="https://ivao.aero/data/images/ratings/atc/@((int)user.RatingAtc!.Value).gif" title="@user.RatingAtc" /></td>
-                    <td>
-                        <div class="d-flex flex-row">
-                            <Authenticated RequiredRoles="DiscordRoles.Training">
-                                <button type="button" class="btn btn-@(user.FaaChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, false)">FAA</button>
-                            </Authenticated>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, false)">DEL/GND</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, false)">TWR</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, false)">APP/DEP</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, false)">CTR</button>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="d-flex flex-row">
-                            <Authenticated RequiredRoles="DiscordRoles.Training">
-                                <button type="button" class="btn btn-@(user.NavCanChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, true)">NavCan</button>
-                            </Authenticated>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, true)">DEL/GND</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, true)">TWR</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, true)">APP/DEP</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, true)">CTR</button>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="d-flex flex-row">
-                            @if (_fras.TryGetValue(user.Vid, out var endorsements))
-                            {
-                                @foreach (var endorsement in endorsements)
-                                {
-                                    <span class="badge rounded-pill bg-@(endorsement.Value ? "dark" : "primary") m-1">@endorsement.Key</span>
-                                }
-                            }
-                        </div>
-                    </td>
-                </tr>
-            }
+            <Authenticated>
+                <ChildContent>
+                    @foreach (User user in (string.IsNullOrWhiteSpace(context.Staff) ? _users?.Where(u => u.LastControlTime >= minControlTime) : _users) ?? Array.Empty<User>())
+                    {
+                        <ControllerRosterRow user="user" AuthenticationContext="context" Fras="_fras" CheckoutChanged="(_, _) => _ = UpdateUsersAsync()" />
+                    }
+                </ChildContent>
+                <Loading>
+                    @foreach (User user in _users?.Where(u => u.LastControlTime >= minControlTime) ?? Array.Empty<User>())
+                    {
+                        <ControllerRosterRow user="user" AuthenticationContext="null" Fras="_fras" />
+                    }
+                </Loading>
+            </Authenticated>
         </tbody>
     </table>
 </div>
@@ -74,10 +44,11 @@
 @code {
     private User[]? _users = null;
     private Dictionary<int, Dictionary<string, bool>> _fras = new();
+    private DateTime minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_users is not null)
+        if (!firstRender)
             return;
 
         foreach (Fra fra in await Api.GetFrasAsync(vidBased: true, ratingBased: false) ?? new())
@@ -103,37 +74,13 @@
             _fras[vid].TryAdd(formatPosition, isPerpetual);
         }
 
-        UpdateUsers(await ContextFactory.CreateDbContextAsync());
+        await UpdateUsersAsync();
     }
 
-    private void UpdateUsers(WebsiteContext context)
+    private async Task UpdateUsersAsync()
     {
-        var minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
-        var allUsers = context.Users.AsNoTracking().ToArray();
-        _users = allUsers.Where(u => u.RatingAtc is not null).OrderByDescending(u => u.LastControlTime).ToArray();
+        var allUsers = (await ContextFactory.CreateDbContextAsync()).Users.AsNoTracking().ToArray();
+        _users = allUsers.OrderByDescending(u => u.LastControlTime).ToArray();
         StateHasChanged();
-    }
-
-    private string GetButtonClasses(User user, AtcRating trainingRating, AtcRating completeRating, bool canada) =>
-        ((!canada && !user.FaaChecked) || (canada && !user.NavCanChecked) || (user.RatingAtc < trainingRating))
-        ? "btn btn-outline-secondary btn-sm m-1 col"
-        : user.RatingAtc >= completeRating
-          ? "btn btn-success btn-sm m-1 col"
-          : "btn btn-info btn-sm m-1 col";
-
-    private async Task CheckoutAsync(User? user, bool canada)
-    {
-        var context = await ContextFactory.CreateDbContextAsync();
-        user = await context.Users.FindAsync(user?.Vid ?? 0);
-        if (user is null)
-            return;
-
-        if (canada)
-            user.NavCanChecked = !user.NavCanChecked;
-        else
-            user.FaaChecked = !user.FaaChecked;
-
-        await context.SaveChangesAsync();
-        UpdateUsers(context);
     }
 }

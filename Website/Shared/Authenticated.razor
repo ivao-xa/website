@@ -13,6 +13,7 @@
     {
         @if (Staff is not null && !string.IsNullOrEmpty(authenticatedUser.Staff))
         {
+            // User is staff and a special <Staff></Staff> block has been provided. Run it.
             @Staff(authenticatedUser)
         }
         else if (ChildContent is not null)
@@ -22,11 +23,13 @@
     }
     else if (Unauthorized is not null)
     {
+        // User does not have the permissions flagged in the @RequiredRoles attribute; run the <Unauthorized></Unauthorized> block.
         @Unauthorized(authenticatedUser)
     }
 }
 else if (Loading is not null)
 {
+    // Waiting for user to get token from IVAO server; run the <Loading></Loading> block.
     @Loading
 }
 
@@ -51,12 +54,14 @@ else if (Loading is not null)
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        // Only check these things once so we don't get infinite redirects.
+        if (authenticatedUser is not null && !firstRender)
             return;
 
         Uri url = new(NavManager.Uri);
         if (!url.Query.Contains("token="))
         {
+            // No token present. Check to see if we're already logged in or hand them off to HQ for authentication.
             authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
 
             if (authenticatedUser is null)
@@ -66,6 +71,7 @@ else if (Loading is not null)
             return;
         }
 
+        // Token present. Register the user, update roles, and clean up the URL in the browser.
         string token = url.Query.Split("token=")[1];
 
         await LoginSrv.RegisterUserAsync(token);
@@ -78,6 +84,7 @@ else if (Loading is not null)
         await InvokeAsync(StateHasChanged);
     }
 
+    /// <summary>Updates and enforces a user's discord roles, obtaining the snowflake if one is not already known.</summary>
     private async Task CheckDiscordRoles(User authenticatedUser)
     {
         var db = WebContextFactory.CreateDbContext();
@@ -89,7 +96,7 @@ else if (Loading is not null)
         if (user.Snowflake is null)
             user.Snowflake = await Discord.RequestSnowflakeAsync("bot-log", user);
 
-        await Discord.EnforceRolesAsync(user, Api);
+        user.Roles = await Discord.EnforceRolesAsync(user, Api);
         await db.SaveChangesAsync();
     }
 }
