@@ -115,10 +115,29 @@ public class DiscordService
         finally { _snowflakingSemaphore.Release(); }
     }
 
-    public async Task EnforceRolesAsync(User user, IvaoApiService api)
+    public async Task<DiscordRoles> EnforceRolesAsync(User user, IvaoApiService api)
     {
+        Regex trainer = new(@"\bXA-T[CA0]");
+        Regex membership = new(@"\bXA-M(AC?|C)");
+        Regex events = new(@"\bXA-E(AC?|C)");
+        void setFlag(bool set, DiscordRoles flag)
+        {
+            if (set)
+                user.Roles |= flag;
+            else
+                user.Roles &= ~flag;
+        }
+
+        setFlag(user.Staff is not null && trainer.IsMatch(user.Staff), DiscordRoles.Training);
+        setFlag(user.Staff is not null && membership.IsMatch(user.Staff), DiscordRoles.Membership);
+        setFlag(user.Staff is not null && events.IsMatch(user.Staff), DiscordRoles.Events);
+
+        bool isMember = (await api.GetCountriesAsync()).SelectMany(c => new[] { c.id, c.divisionId }).Contains(user.Division);
+        setFlag(isMember && !string.IsNullOrEmpty(user.Staff), DiscordRoles.Staff);
+        setFlag(isMember, DiscordRoles.Member);
+
         if (user.Snowflake is null)
-            return;
+            return user.Roles;
 
         static IEnumerable<ulong> roleToSnowflakes(DiscordRoles roles)
         {
@@ -147,28 +166,10 @@ public class DiscordService
 
         var guildUser = ivao.GetUser(user.Snowflake.Value);
         if (guildUser is not IGuildUser igu)
-            return;
-
-        Regex trainer = new(@"\bXA-T[A0]");
-        Regex membership = new(@"\bXA-M(AC?|C)");
-        Regex events = new(@"\bXA-E(AC?|C)");
-        void setFlag(bool set, DiscordRoles flag)
-        {
-            if (set)
-                user.Roles |= flag;
-            else
-                user.Roles &= ~flag;
-        }
-
-        setFlag(user.Staff is not null && trainer.IsMatch(user.Staff), DiscordRoles.Training);
-        setFlag(user.Staff is not null && membership.IsMatch(user.Staff), DiscordRoles.Membership);
-        setFlag(user.Staff is not null && events.IsMatch(user.Staff), DiscordRoles.Events);
-
-        bool isMember = (await api.GetCountriesAsync()).SelectMany(c => new[] { c.id, c.divisionId }).Contains(user.Division);
-        setFlag(isMember && !string.IsNullOrEmpty(user.Staff), DiscordRoles.Staff);
-        setFlag(isMember, DiscordRoles.Member);
+            return user.Roles;
 
         await igu.AddRolesAsync(roleToSnowflakes(user.Roles).ToArray());
+        return user.Roles;
     }
 
     private SocketTextChannel? FindTextChannelByName(string channelName) =>
@@ -338,7 +339,7 @@ public class DiscordService
                 static Embed genEmbed(KeyValuePair<ATC, User?> user, string uniqueData) =>
                     new EmbedBuilder()
                     .WithCurrentTimestamp()
-                    .WithDescription($"[{user.Value?.Mention ?? user.Key.ToString()} Member Page](https://ivao.aero/member?Id={user.Key})")
+                    .WithDescription($"[{user.Value?.Mention ?? user.Key.ToString()} Member Page](https://ivao.aero/member?Id={user.Key.UserId})")
                     .WithImageUrl($"https://status.ivao.aero/{user.Key.UserId}.png?time={uniqueData}").Build();
 
                 async Task updateAsync()
