@@ -5,16 +5,16 @@
 
 <nav class="navbar navbar-dark bg-dark sticky-top">
     <div class="container">
-        <div class="d-flex align-items-center justify-content-between" style="width: 100%;">
+        <div class="d-flex align-items-center justify-content-between w-100">
             <a class="navbar-brand" href="/"><img src="img/logo_white.svg" title="IVAO XA logo" style="height: 2.5ex;" class="m-1" /></a>
-            <div class="d-flex nav flex-row">
+            <div class="d-flex nav flex-md-row flex-column">
                 <NavLink class="nav-link" Match="NavLinkMatch.All" href="/">Home</NavLink>
                 <NavLink class="nav-link" href="/about">About</NavLink>
                 <NavLink class="nav-link" href="/atc">ATC</NavLink>
                 <Authenticated>
                     <Staff><NavLink class="nav-link" href="/pilot">Pilot</NavLink></Staff>
                 </Authenticated>
-                <NavLink class="nav-link" href="/training/lesson/README">Training</NavLink>
+                <NavLink class="nav-link" href="/training">Training</NavLink>
                 <NavLink class="nav-link" href="/community">Community</NavLink>
             </div>
             <Authenticated>

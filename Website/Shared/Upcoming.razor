@@ -50,7 +50,7 @@
         var context = await ContextFactory.CreateDbContextAsync();
         try
         {
-            var trainings = context.Trainings.Cast<ICalendarItem>().ToArray();
+            var trainings = context.Exams.Cast<ICalendarItem>().ToArray();
             _upcoming = trainings.Concat(context.Events.Cast<ICalendarItem>().ToArray()).OrderByDescending(i => i.Start);
         }
         catch { }

@@ -31,7 +31,7 @@
                                     {
                                         bool localStaff = staffPos.StartsWith("XA-") || (staffPos.Contains('-') && "KC".Contains(staffPos[0]));
 
-                                        <a href="https://ivao.aero/member?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m-1" style="text-decoration-line: none;" target="_blank">@staffPos</a>
+                                        <a href="https://ivao.aero/member?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m@(user.Staff.StartsWith(staffPos) ? "e" : user.Staff.EndsWith(staffPos) ? "b" : "x")-1" style="text-decoration-line: none;" target="_blank">@staffPos</a>
                                     }
                                 }
                             </th>

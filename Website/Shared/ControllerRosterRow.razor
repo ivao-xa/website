@@ -16,13 +16,14 @@
                 {
                     bool localStaff = staffPos.StartsWith("XA-") || (staffPos.Contains('-') && "KC".Contains(staffPos[0]));
 
-                    <a href="https://ivao.aero/member?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m-1" style="text-decoration-line: none;" target="_blank">@staffPos</a>
+                    <a href="https://ivao.aero/member?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m@(user.Staff.StartsWith(staffPos) ? "e" : user.Staff.EndsWith(staffPos) ? "b" : "x")-1" style="text-decoration-line: none;" target="_blank">@staffPos</a>
                 }
             }
         </th>
-        <Authenticated>
+        @if (AuthenticationContext is not null)
+        {
             <td>@user.FirstName @user.LastName</td>
-        </Authenticated>
+        }
         <td><img src="https://status.ivao.aero/R/@(user.Vid).png" title="@user.Vid" /></td>
         <td class="text-center">
             @if (user.RatingAtc is null)

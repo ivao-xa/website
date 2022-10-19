@@ -1,0 +1,106 @@
+﻿@page "/training"
+@page "/training/request"
+@using Microsoft.EntityFrameworkCore
+@using Website.Data
+@inject IDbContextFactory<WebsiteContext> ContextFactory
+@inject IvaoApiService Api
+
+<Authenticated>
+    <div class="m-3">
+        @if (GetRequestAsync(context).Result is TrainingRequest tr)
+        {
+
+        }
+        else
+        {
+            <div class="col">
+                <div class="row">
+                    <div class="col-6">
+                        <label for="vid" class="form-label">VID</label>
+                        <input type="text" class="form-control" id="vid" value="@context.Vid" disabled>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <label for="snowflake" class="form-label">Snowflake</label>
+                        <div class="input-group">
+                            <span class="input-group-text">&lt;&commat;</span>
+                            <input type="text" class="form-control text-center" id="snowflake" value="@context.Snowflake" disabled>
+                            <span class="input-group-text">&gt;</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <label for="rating" class="form-label">Training Level</label>
+                        <select class="form-select" id="rating" @bind="@trainingLevel">
+                            <option value="-1">Choose&hellip;</option>
+                            @foreach (AtcRating r in Enum.GetValues<AtcRating>())
+                            {
+                                <option value="@((int)r)">@r</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6 mb-2">
+                        <label for="position" class="form-label">ARTCC/FIR</label>
+                        <input type="text" list="knownPositions" class="form-control" id="position" placeholder="Type to search…" @bind-value="@artcc" @bind-value:event="onchange">
+                        <datalist id="knownPositions">
+                            @foreach (Center c in centers ?? Array.Empty<Center>())
+                            {
+                                <option value="@c.id" />
+                            }
+                        </datalist>
+                    </div>
+                    <div class="col-12">
+                        <label for="comments" class="form-label">Comments</label>
+                        <textarea class="form-control" id="comments" @bind="comments" />
+                    </div>
+                </div>
+                <div class="row mt-3 flex-row-reverse">
+                    @if (IsReadySubmit())
+                    {
+                        <button type="submit" class="btn btn-primary col-1" @onclick="_ => SendAsync(context)">Submit</button>
+                    }
+                    else
+                    {
+                        <button type="submit" class="btn btn-secondary col-1" disabled>Submit</button>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</Authenticated>
+
+@code {
+    private Center[]? centers;
+
+    private int trainingLevel = -1;
+    private string artcc = string.Empty;
+    private string comments = string.Empty;
+
+    private bool IsReadySubmit() =>
+        trainingLevel > -1
+     && centers is not null
+     && centers.Any(c => c.id.Equals(artcc, StringComparison.InvariantCultureIgnoreCase));
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        centers = await Api.GetCentersAsync((await Api.GetCountriesAsync()).Select(c => c.id).ToArray());
+        centers = centers.OrderBy(c => c.id).ToArray();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    protected async Task<TrainingRequest?> GetRequestAsync(User user)
+    {
+        var context = await ContextFactory.CreateDbContextAsync();
+        var results = context.TrainingRequests.ToArray();
+        return await context.TrainingRequests.FirstOrDefaultAsync(r => r.Trainee == user.Vid);
+    }
+
+    private async Task SendAsync(User user)
+    {
+        if (!IsReadySubmit())
+            return;
+
+        var context = await ContextFactory.CreateDbContextAsync();
+        await context.TrainingRequests.AddAsync(new() { Trainee = user.Vid, Position = artcc, Rating = (AtcRating)trainingLevel, Comments = comments });
+        await context.SaveChangesAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+}
