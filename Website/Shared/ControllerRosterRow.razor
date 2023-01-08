@@ -111,12 +111,14 @@
 
 	private DateTime minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
 
-	private string GetButtonClasses(User user, AtcRating trainingRating, AtcRating completeRating, bool canada) =>
-		((!canada && !user.FaaChecked) || (canada && !user.NavCanChecked) || ((user.RatingAtc ?? 0) < trainingRating))
+	private string GetButtonClasses(User user, AtcRating trainingRating, AtcRating completeRating, bool canada)
+	{
+		return ((!canada && !user.FaaChecked) || (canada && !user.NavCanChecked) || ((user.RatingAtc ?? 0) < trainingRating))
 		? "btn btn-outline-secondary btn-sm m-1 col"
 		: user.RatingAtc >= completeRating
 				? "btn btn-success btn-sm m-1 col"
 				: "btn btn-info btn-sm m-1 col";
+	}
 
 	private async Task CheckoutAsync(User? user, bool canada)
 	{

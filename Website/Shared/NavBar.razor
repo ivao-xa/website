@@ -19,7 +19,7 @@
 						<NavLink class="nav-link" href="/training/staff">Training</NavLink>
 					</Staff>
 					<Unauthorized>
-						@if (_activeTraining is not null)
+						@if (_currentTrainee)
 						{
 							<NavLink class="nav-link" href="/training/student">Training</NavLink>
 						}
@@ -89,7 +89,7 @@
 	};
 
 	string _currentGreeting = "";
-	string? _activeTraining = null;
+	bool _currentTrainee = false;
 
 	ATC? _currentController = null;
 	User? _currentUser = null;
@@ -122,7 +122,7 @@
 			_currentDocuments = tmp.Where(d => d.Positions.Split(':').Contains(_currentController.Value.Callsign.Split('_')[0])).ToArray();
 		}
 
-		context.TrainingRequests.Any(tr => tr.Trainee == _currentUser.Vid || tr.Trainer == _currentUser.Vid);
+		_currentTrainee = context.TrainingRequests.Any(tr => tr.Trainee == _currentUser.Vid);
 
 		await InvokeAsync(StateHasChanged);
 	}

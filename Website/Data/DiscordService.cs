@@ -310,7 +310,7 @@ public class DiscordService
 					attachFiles: PermValue.Allow, addReactions: PermValue.Allow,
 					connect: PermValue.Allow, speak: PermValue.Allow
 				);
-				OverwritePermissions adminPerms = new(1 << 3, 0);
+				OverwritePermissions adminPerms = new((1 << 3) | writePerms.AllowValue, 0);
 
 				Dictionary<string, (ulong Id, PermissionTarget Target)> targets = new();
 				foreach (var p in perms.Read.Concat(perms.Write).Concat(perms.Admin))
@@ -413,7 +413,7 @@ public class DiscordService
 				static Embed genEmbed(KeyValuePair<ATC, User?> user, string uniqueData) =>
 					new EmbedBuilder()
 					.WithCurrentTimestamp()
-					.WithDescription($"[{user.Value?.Mention ?? user.Key.ToString()} Member Page](https://ivao.aero/member?Id={user.Key.UserId})")
+					.WithDescription($"[{user.Value?.Mention ?? user.Key.ToString()} Member Page](https://ivao.aero/Member.aspx?Id={user.Key.UserId})")
 					.WithImageUrl($"https://status.ivao.aero/{user.Key.UserId}.png?time={uniqueData}").Build();
 
 				async Task updateAsync()
@@ -440,7 +440,11 @@ public class DiscordService
 				{
 					var context = await _webContextFactory.CreateDbContextAsync();
 					trackedControllers.Add(controller, context.Users.AsNoTracking().First(u => u.Vid == controller.UserId));
-					await ivao.CreateVoiceChannelAsync(controller.Callsign, vcp => { vcp.CategoryId = onlineCategory.Id; vcp.PermissionOverwrites = new(getOverwrites(new() { Deny = new[] { "*" }, Read = Array.Empty<string>(), Write = new[] { "bot-member" }, Admin = new[] { "bot-administrator", "Bots" } })); });
+					List<string> admins = new() { "bot-administrator", "Bots" };
+					if (trackedControllers[controller] is User u && u.Snowflake is ulong s)
+						admins.Add(s.ToString());
+
+					await ivao.CreateVoiceChannelAsync(controller.Callsign, vcp => { vcp.CategoryId = onlineCategory.Id; vcp.PermissionOverwrites = new(getOverwrites(new() { Deny = new[] { "*" }, Read = Array.Empty<string>(), Write = new[] { "bot-member" }, Admin = admins.ToArray() })); });
 					await updateAsync();
 				};
 
