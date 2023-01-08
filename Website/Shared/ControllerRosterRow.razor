@@ -4,110 +4,133 @@
 
 @if (user is not null)
 {
-    <tr class="align-middle @(user.LastControlTime < DateTime.UtcNow - TimeSpan.FromDays(30) ? user.LastControlTime < minControlTime ? "table-danger" : "table-secondary" : string.Empty)">
-        <th scope="row">
-            @if (string.IsNullOrEmpty(user.Staff))
-            {
-                <a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;" target="_blank">@user.Vid</a>
-            }
-            else
-            {
-                @foreach (string staffPos in user.Staff.Split(':'))
-                {
-                    bool localStaff = staffPos.StartsWith("XA-") || (staffPos.Contains('-') && "KC".Contains(staffPos[0]));
+	<tr class="align-middle @(user.LastControlTime < DateTime.UtcNow - TimeSpan.FromDays(30) ? user.LastControlTime < minControlTime ? "table-danger" : "table-secondary" : string.Empty)">
+		<th scope="row">
+			@if (string.IsNullOrEmpty(user.Staff))
+			{
+				<a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;" target="_blank">@user.Vid</a>
+			}
+			else
+			{
+				@foreach (string staffPos in user.Staff.Split(':'))
+				{
+					bool localStaff = staffPos.StartsWith("XA-") || (staffPos.Contains('-') && "KC".Contains(staffPos[0]));
 
-                    <a href="https://ivao.aero/member?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m@(user.Staff.StartsWith(staffPos) ? "e" : user.Staff.EndsWith(staffPos) ? "b" : "x")-1" style="text-decoration-line: none;" target="_blank">@staffPos</a>
-                }
-            }
-        </th>
-        @if (AuthenticationContext is not null)
-        {
-            <td>@user.FirstName @user.LastName</td>
-        }
-        <td><img src="https://status.ivao.aero/R/@(user.Vid).png" title="@user.Vid" /></td>
-        <td class="text-center">
-            @if (user.RatingAtc is null)
-            {
-                <strong>???</strong>
-            }
-            else
-            {
-                <img src="https://ivao.aero/data/images/ratings/atc/@((int)user.RatingAtc!.Value).gif" title="@user.RatingAtc" />
-            }
-        </td>
-        <td>
-            <div class="d-flex flex-row">
-                @if ((AuthenticationContext?.Roles.HasFlag(DiscordRoles.Training) ?? false) || (AuthenticationContext?.Roles.HasFlag(DiscordRoles.Administrator) ?? false))
-                {
-                    <button type="button" class="btn btn-@(user.FaaChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, false)">FAA</button>
-                }
-                <button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, false)">DEL/GND</button>
-                <button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, false)">TWR</button>
-                <button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, false)">APP/DEP</button>
-                <button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, false)">CTR</button>
-            </div>
-        </td>
-        <td>
-            <div class="d-flex flex-row">
-                @if ((AuthenticationContext?.Roles.HasFlag(DiscordRoles.Training) ?? false) || (AuthenticationContext?.Roles.HasFlag(DiscordRoles.Administrator) ?? false))
-                {
-                    <button type="button" class="btn btn-@(user.NavCanChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, true)">NavCan</button>
-                }
-                <button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, true)">DEL/GND</button>
-                <button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, true)">TWR</button>
-                <button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, true)">APP/DEP</button>
-                <button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, true)">CTR</button>
-            </div>
-        </td>
-        <td>
-            <div class="d-flex flex-row">
-                @if (Fras.TryGetValue(user.Vid, out var endorsements))
-                {
-                    @foreach (var endorsement in endorsements)
-                    {
-                        <span class="badge rounded-pill bg-@(endorsement.Value ? "dark" : "primary") m-1">@endorsement.Key</span>
-                    }
-                }
-            </div>
-        </td>
-    </tr>
+					<a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m@(user.Staff.StartsWith(staffPos) ? "e" : user.Staff.EndsWith(staffPos) ? "b" : "x")-1 text-decoration-none" target="_blank">@staffPos</a>
+				}
+			}
+		</th>
+		@if (AuthenticationContext is not null)
+		{
+			<td>@user.FirstName @user.LastName</td>
+		}
+		<td><img src="https://status.ivao.aero/R/@(user.Vid).png" title="@user.Vid" /></td>
+		<td class="text-center">
+			@if (user.RatingAtc is null)
+			{
+				<strong>???</strong>
+			}
+			else
+			{
+				<img src="https://ivao.aero/data/images/ratings/atc/@((int)user.RatingAtc!.Value).gif" title="@user.RatingAtc" />
+			}
+		</td>
+		<td>
+			<div class="d-flex flex-row">
+				@if ((AuthenticationContext?.Roles.HasFlag(DiscordRoles.Training) ?? false) || (AuthenticationContext?.Roles.HasFlag(DiscordRoles.Administrator) ?? false))
+				{
+					<button type="button" class="btn btn-@(user.FaaChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, false)">FAA</button>
+				}
+				<button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, false)">DEL/GND</button>
+				<button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, false)">TWR</button>
+				<button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, false)">APP/DEP</button>
+				<button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, false)">CTR</button>
+			</div>
+		</td>
+		<td>
+			<div class="d-flex flex-row">
+				@if ((AuthenticationContext?.Roles.HasFlag(DiscordRoles.Training) ?? false) || (AuthenticationContext?.Roles.HasFlag(DiscordRoles.Administrator) ?? false))
+				{
+					<button type="button" class="btn btn-@(user.NavCanChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, true)">NavCan</button>
+				}
+				<button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, true)">DEL/GND</button>
+				<button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, true)">TWR</button>
+				<button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, true)">APP/DEP</button>
+				<button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, true)">CTR</button>
+			</div>
+		</td>
+		<td>
+			@if (Fras is null || !Fras.Any())
+			{
+				<div class="d-flex flex-row justify-content-center">
+					<div class="loader"></div>
+				</div>
+			}
+			else if (Fras.TryGetValue(user.Vid, out var endorsements))
+			{
+				<Authenticated RequiredRoles="DiscordRoles.Administrator">
+					<Loading>
+						<div class="d-flex flex-row justify-content-center">
+							<div class="loader"></div>
+						</div>
+					</Loading>
+					<Staff>
+						<div class="d-flex flex-row">
+							@foreach (var endorsement in endorsements)
+							{
+								<a href="@endorsement.Value.Link" target="_blank" class="badge text-decoration-none rounded-pill bg-@(endorsement.Value.Redundant ? "danger" : endorsement.Value.Perpetual ? "dark" : "primary") m-1">@endorsement.Key</a>
+							}
+						</div>
+					</Staff>
+					<Unauthorized>
+						<div class="d-flex flex-row">
+							@foreach (var endorsement in endorsements)
+							{
+								<span class="badge rounded-pill bg-@(endorsement.Value.Redundant ? "danger" : endorsement.Value.Perpetual ? "dark" : "primary") m-1">@endorsement.Key</span>
+							}
+						</div>
+					</Unauthorized>
+				</Authenticated>
+			}
+		</td>
+	</tr>
 }
 
 @code {
-    [Parameter]
-    public User? user { get; set; }
+	[Parameter]
+	public User? user { get; set; }
 
-    [Parameter]
-    public User? AuthenticationContext { get; set; } = default;
+	[Parameter]
+	public User? AuthenticationContext { get; set; } = default;
 
-    [Parameter]
-    public Dictionary<int, Dictionary<string, bool>> Fras { get; set; } = new();
+	[Parameter]
+	public Dictionary<int, Dictionary<string, (string Link, bool Perpetual, bool Redundant)>> Fras { get; set; } = new();
 
-    [Parameter]
-    public EventHandler? CheckoutChanged { get; set; }
+	[Parameter]
+	public EventHandler? CheckoutChanged { get; set; }
 
-    private DateTime minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
+	private DateTime minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
 
-    private string GetButtonClasses(User user, AtcRating trainingRating, AtcRating completeRating, bool canada) =>
-        ((!canada && !user.FaaChecked) || (canada && !user.NavCanChecked) || ((user.RatingAtc ?? 0) < trainingRating))
-        ? "btn btn-outline-secondary btn-sm m-1 col"
-        : user.RatingAtc >= completeRating
-          ? "btn btn-success btn-sm m-1 col"
-          : "btn btn-info btn-sm m-1 col";
+	private string GetButtonClasses(User user, AtcRating trainingRating, AtcRating completeRating, bool canada) =>
+		((!canada && !user.FaaChecked) || (canada && !user.NavCanChecked) || ((user.RatingAtc ?? 0) < trainingRating))
+		? "btn btn-outline-secondary btn-sm m-1 col"
+		: user.RatingAtc >= completeRating
+				? "btn btn-success btn-sm m-1 col"
+				: "btn btn-info btn-sm m-1 col";
 
-    private async Task CheckoutAsync(User? user, bool canada)
-    {
-        var context = await ContextFactory.CreateDbContextAsync();
-        user = await context.Users.FindAsync(user?.Vid ?? 0);
-        if (user is null)
-            return;
+	private async Task CheckoutAsync(User? user, bool canada)
+	{
+		var context = await ContextFactory.CreateDbContextAsync();
+		user = await context.Users.FindAsync(user?.Vid ?? 0);
+		if (user is null)
+			return;
 
-        if (canada)
-            user.NavCanChecked = !user.NavCanChecked;
-        else
-            user.FaaChecked = !user.FaaChecked;
+		if (canada)
+			user.NavCanChecked = !user.NavCanChecked;
+		else
+			user.FaaChecked = !user.FaaChecked;
 
-        await context.SaveChangesAsync();
-        CheckoutChanged?.Invoke(this, new());
-    }
+		await context.SaveChangesAsync();
+		CheckoutChanged?.Invoke(this, new());
+	}
 }

@@ -4,105 +4,126 @@
 @inject IDbContextFactory<WebsiteContext> ContextFactory
 
 <nav class="navbar navbar-dark bg-dark sticky-top">
-    <div class="container">
-        <div class="d-flex align-items-center justify-content-between w-100">
-            <a class="navbar-brand" href="/"><img src="img/logo_white.svg" title="IVAO XA logo" style="height: 2.5ex;" class="m-1" /></a>
-            <div class="d-flex nav flex-md-row flex-column">
-                <NavLink class="nav-link" Match="NavLinkMatch.All" href="/">Home</NavLink>
-                <NavLink class="nav-link" href="/about">About</NavLink>
-                <NavLink class="nav-link" href="/atc">ATC</NavLink>
-                <Authenticated>
-                    <Staff><NavLink class="nav-link" href="/pilot">Pilot</NavLink></Staff>
-                </Authenticated>
-                <NavLink class="nav-link" href="/training">Training</NavLink>
-                <NavLink class="nav-link" href="/community">Community</NavLink>
-            </div>
-            <Authenticated>
-                <ChildContent>
-                    <div>
-                        <span class="text-muted">@(_greetings[System.Random.Shared.Next(_greetings.Length)]), <a href="https://ivao.aero/Member.aspx?ID=@context.Vid" target="_blank">@context.FirstName</a>!</span>
-                        @{
-                            _currentUser = context;
-                        }
-                        @if (_currentController is not null)
-                        {
-                            <button type="button" class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#controllerProcedureModal">@(_currentController.Value.Callsign)</button>
-                        }
-                    </div>
-                </ChildContent>
+	<div class="container">
+		<div class="d-flex align-items-center justify-content-between w-100">
+			<a class="navbar-brand" href="/"><img src="img/logo_white.svg" title="IVAO XA logo" style="height: 2.5ex;" class="m-1" /></a>
+			<div class="d-flex nav flex-md-row flex-column">
+				<NavLink class="nav-link" Match="NavLinkMatch.All" href="/">Home</NavLink>
+				<NavLink class="nav-link" href="/about">About</NavLink>
+				<NavLink class="nav-link" href="/atc">ATC</NavLink>
+				<Authenticated>
+					<Staff><NavLink class="nav-link" href="/pilot">Pilot</NavLink></Staff>
+				</Authenticated>
+				<Authenticated RequiredRoles="DiscordRoles.Training">
+					<Staff>
+						<NavLink class="nav-link" href="/training/staff">Training</NavLink>
+					</Staff>
+					<Unauthorized>
+						@if (_activeTraining is not null)
+						{
+							<NavLink class="nav-link" href="/training/student">Training</NavLink>
+						}
+					</Unauthorized>
+				</Authenticated>
+				<NavLink class="nav-link" href="/community">Community</NavLink>
+			</div>
+			<Authenticated>
+				<ChildContent>
+					<div>
+						<span class="text-muted">@(_currentGreeting), <a href="https://ivao.aero/Member.aspx?ID=@context.Vid" target="_blank">@context.FirstName</a>!</span>
+						@{
+							_currentUser = context;
+						}
+						@if (_currentController is not null)
+						{
+							<button type="button" class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#controllerProcedureModal">@(_currentController.Value.Callsign)</button>
+						}
+					</div>
+				</ChildContent>
 
-                <Loading>
-                    <span class="text-muted">Authenticating&hellip;</span>
-                </Loading>
-            </Authenticated>
-        </div>
-    </div>
+				<Loading>
+					<span class="text-muted">Authenticating&hellip;</span>
+				</Loading>
+			</Authenticated>
+		</div>
+	</div>
 </nav>
 
 @if (_currentController is ATC context)
 {
-    <div class="modal fade" id="controllerProcedureModal" aria-hidden="true" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        You are currently controlling @(context.Atis is not null && context.Atis.Value.Lines.Length > 1 ? context.Atis.Value.Lines[1] : context.Callsign)
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Here are the relevant procedures for your position:</p>
-                    <div class="d-flex flex-column">
-                        @if (context.Callsign[1] != 'Z' && context.Callsign[0] == 'K')
-                        {
-                            <a href="http://airnav.com/airport/@(context.Callsign.Split('_')[0])" target="_blank">AirNav</a>
-                        }
+	<div class="modal fade" id="controllerProcedureModal" aria-hidden="true" tabindex="-1">
+		<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">
+						You are currently controlling @(context.Atis is not null && context.Atis.Value.Lines.Length > 1 ? context.Atis.Value.Lines[1] : context.Callsign)
+					</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+				</div>
+				<div class="modal-body">
+					<p>Here are the relevant procedures for your position:</p>
+					<div class="d-flex flex-column">
+						@if (context.Callsign[1] != 'Z' && context.Callsign[0] == 'K')
+						{
+							<a href="http://airnav.com/airport/@(context.Callsign.Split('_')[0])" target="_blank">AirNav</a>
+						}
 
-                        @foreach (Document doc in _currentDocuments ?? Array.Empty<Document>())
-                        {
-                            <a href="@doc.Path" target="_blank">@doc.Name</a>
-                        }
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
+						@foreach (Document doc in _currentDocuments ?? Array.Empty<Document>())
+						{
+							<a href="@doc.Path" target="_blank">@doc.Name</a>
+						}
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
 }
 
 @code {
-    private readonly string[] _greetings = new[]
-    {
-        "Hello", "Greetings", "Good day", "Salutations", "Howdy", "Hey", "How's it going", "What's up", "Blue skies"
-    };
+	private readonly string[] _greetings = new[]
+	{
+		"Hello", "Greetings", "Good day", "Salutations", "Howdy", "Hey", "How's it going", "What's up", "Blue skies"
+	};
 
-    ATC? _currentController = null;
-    User? _currentUser = null;
-    Document[]? _currentDocuments = null;
+	string _currentGreeting = "";
+	string? _activeTraining = null;
 
-    protected override void OnAfterRender(bool firstRender)
-    {
-        if (!firstRender)
-            return;
+	ATC? _currentController = null;
+	User? _currentUser = null;
+	Document[]? _currentDocuments = null;
 
-        Timer t = new(async _ => await UpdateAsync(), null, 0, 5000);
-    }
+	protected override void OnInitialized()
+	{
+		_currentGreeting = _greetings[System.Random.Shared.Next(_greetings.Length)];
+	}
 
-    async Task UpdateAsync()
-    {
-        if (_currentUser is null)
-            return;
+	protected override void OnAfterRender(bool firstRender)
+	{
+		if (!firstRender)
+			return;
 
-        _currentController = (await Whazzup.GetFeedAsync())?.Clients.Atcs.Select(a => (ATC?)a).FirstOrDefault(a => a?.UserId == _currentUser.Vid);
-        if (_currentController is not null)
-        {
-            var context = await ContextFactory.CreateDbContextAsync();
-            var tmp = context.Documents.AsNoTracking().ToArray();
-            _currentDocuments = tmp.Where(d => d.Positions.Split(':').Contains(_currentController.Value.Callsign.Split('_')[0])).ToArray();
-        }
+		Timer t = new(async _ => await UpdateAsync(), null, 0, 5000);
+	}
 
-        await InvokeAsync(StateHasChanged);
-    }
+	async Task UpdateAsync()
+	{
+		if (_currentUser is null)
+			return;
+
+		var context = await ContextFactory.CreateDbContextAsync();
+
+		_currentController = (await Whazzup.GetFeedAsync())?.Clients.Atcs.Select(a => (ATC?)a).FirstOrDefault(a => a?.UserId == _currentUser.Vid);
+		if (_currentController is not null)
+		{
+			var tmp = context.Documents.AsNoTracking().ToArray();
+			_currentDocuments = tmp.Where(d => d.Positions.Split(':').Contains(_currentController.Value.Callsign.Split('_')[0])).ToArray();
+		}
+
+		context.TrainingRequests.Any(tr => tr.Trainee == _currentUser.Vid || tr.Trainer == _currentUser.Vid);
+
+		await InvokeAsync(StateHasChanged);
+	}
 }

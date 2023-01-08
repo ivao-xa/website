@@ -6,7 +6,7 @@ public class IvaoApiService
     {
         _http = httpClient;
         _http.Timeout = TimeSpan.FromSeconds(5);
-        _apiKey = config["ivao:apiKey"];
+        _apiKey = config["ivao:apiKey"] ?? "";
     }
 
     private readonly string _apiKey;
@@ -15,14 +15,15 @@ public class IvaoApiService
     private HashSet<Fra>? _fras = null;
     private DateTime _frasUpdated = DateTime.MinValue;
 
-    public async Task<HashSet<Fra>?> GetFrasAsync(string division = "XA", bool vidBased = true, bool ratingBased = true)
+    public async Task<IEnumerable<Fra>?> GetFrasAsync(string division = "XA", bool vidBased = true, bool ratingBased = true)
     {
         if (_fras is not null && DateTime.Now - _frasUpdated < TimeSpan.FromMinutes(1))
-            return _fras;
+            return _fras.Where(f => (vidBased || f.userId is null) && (ratingBased || f.minAtc is null));
 
         try
         {
-            var pg1 = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page=1&perPage=100&divisionId={division}&isActive=true&members={vidBased.ToString().ToLowerInvariant()}&positions={ratingBased.ToString().ToLowerInvariant()}&expand=true&apiKey={_apiKey}");
+            string queryUri = $"https://api.ivao.aero/v2/fras?page=1&perPage=100&divisionId={division}&isActive=true&members=true&positions=true&expand=true&apiKey={_apiKey}";
+			var pg1 = await _http.GetFromJsonAsync<FraList>(queryUri);
 
             if (pg1 is null)
                 return null;
@@ -32,14 +33,14 @@ public class IvaoApiService
 
             for (int page = 2; page <= pg1.pages; ++page)
             {
-                var pg = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page={page}&perPage=100&divisionId={division}&isActive=true&members={vidBased.ToString().ToLowerInvariant()}&positions={ratingBased.ToString().ToLowerInvariant()}&expand=true&apiKey={_apiKey}");
+                var pg = await _http.GetFromJsonAsync<FraList>($"https://api.ivao.aero/v2/fras?page={page}&perPage=100&divisionId={division}&isActive=true&members=true&positions=true&expand=true&apiKey={_apiKey}");
                 if (pg is null)
                     break;
                 _fras.UnionWith(pg.items);
             }
 
             _frasUpdated = DateTime.Now;
-            return _fras;
+            return await GetFrasAsync(division, vidBased, ratingBased);
         }
         catch
         {

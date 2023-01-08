@@ -1,0 +1,68 @@
+﻿@page "/training/student"
+@using Microsoft.EntityFrameworkCore
+@using System.Text.RegularExpressions;
+@using Website.Data
+@using Markdig
+@inject IDbContextFactory<WebsiteContext> ContextFactory
+@inject IvaoApiService Api
+@inject NavigationManager NavManager
+
+<Authenticated>
+	@{
+		_ = GetTrainingPathAsync(context);
+	}
+
+	@if (tp is null)
+	{
+		<div class="container mt-4">
+			<h1>No Trainings</h1><br />
+			<p>You don't have any trainings in progress. Ask your trainer to add you if you're expecting something here.</p>
+		</div>
+	}
+	else if (Path.GetExtension(tp) == ".md")
+	{
+		<div class="container">
+			@Training(tp)
+		</div>
+	}
+	else
+	{
+		<AcademyExam Path="@tp" />
+	}
+</Authenticated>
+
+@code {
+	private string? tp { get; set; } = null;
+
+	private async Task GetTrainingPathAsync(User trainee)
+	{
+		if (tp is not null)
+			return;
+
+		var context = await ContextFactory.CreateDbContextAsync();
+		var trainingReq = await context.TrainingRequests.AsNoTracking().FirstOrDefaultAsync(tr => tr.Trainee == trainee.Vid);
+
+		if (trainingReq is null)
+			return;
+
+		if (!int.TryParse(trainingReq.Comments.Split('/')[0], out int trainingIdx))
+			return;
+
+		tp = Directory.GetFiles(
+				Path.Join(
+					"training",
+					"data",
+					trainingReq.AtcRating is null ? Enum.GetName(trainingReq.PilotRating!.Value) : Enum.GetName(trainingReq.AtcRating!.Value)
+				),
+				$"{trainingIdx + 1}.*"
+			).SingleOrDefault();
+
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private MarkupString Training(string filepath)
+	{
+		MarkdownPipeline mp = new MarkdownPipelineBuilder().UseBootstrap().UseAdvancedExtensions().Build();
+		return (MarkupString)Markdig.Markdown.ToHtml(File.ReadAllText(filepath), mp);
+	}
+}

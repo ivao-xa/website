@@ -1,0 +1,102 @@
+﻿@page "/training/staff"
+@using Microsoft.EntityFrameworkCore
+@using System.Text.RegularExpressions;
+@using Website.Data
+@inject IDbContextFactory<WebsiteContext> ContextFactory
+@inject IvaoApiService Api
+@inject NavigationManager NavManager
+
+<Authenticated RequiredRoles="DiscordRoles.Training">
+	<Staff>
+		<div class="d-flex flex-column w-100">
+			<table class="table w-100">
+				<thead>
+					<tr class="head">
+						<th scope="col">Trainer</th>
+						<th scope="col">Trainee</th>
+						<th scope="col">Rating</th>
+						<th scope="col">Progress</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var training in GetTrainings())
+					{
+						<tr class="align-middle">
+							<td>
+								<select @onchange="v => SetTrainer(training.Id, int.Parse(v.Value.ToString()!))">
+									@foreach (var trainer in GetTrainers())
+									{
+										@if (training.Trainer == trainer.Vid)
+										{
+											<option value="@trainer.Vid" selected>@trainer.FirstName - Current</option>
+										}
+										else
+										{
+											<option value="@trainer.Vid">@trainer.FirstName</option>
+										}
+									}
+								</select>
+							</td>
+							<td>@training.Trainee</td>
+							<td><img src="https://ivao.aero/data/images/ratings/atc/@(((int?)training.AtcRating ?? (int?)training.PilotRating)!.Value).gif" title="@(training.AtcRating is null ? Enum.GetName(training.PilotRating!.Value) : Enum.GetName(training.AtcRating!.Value))"></td>
+							<td>
+								<div class="text-center" style="background-color: #f1f1f1;">
+									<div style="background-color: #4caf50; width: @GetTrainingPercentage(training)%">@GetTrainingPercentage(training)%</div>
+								</div>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</Staff>
+	<Unauthorized>
+		@{
+			NavManager.NavigateTo("/", replace: true);
+		}
+	</Unauthorized>
+</Authenticated>
+
+@code {
+	private IEnumerable<TrainingRequest> GetTrainings()
+	{
+		var context = ContextFactory.CreateDbContext();
+		return context.TrainingRequests.AsNoTracking();
+	}
+
+	private IEnumerable<User> GetTrainers()
+	{
+		var context = ContextFactory.CreateDbContext();
+		return context.Users.Where(u => u.Roles.HasFlag(DiscordRoles.Training)).AsNoTracking();
+	}
+
+	private void SetTrainer(int id, int trainer)
+	{
+		var context = ContextFactory.CreateDbContext();
+		TrainingRequest? req = context.TrainingRequests.Find(id);
+		if (req is not null)
+		{
+			req.Trainer = trainer;
+
+			if (string.IsNullOrWhiteSpace(req.Comments))
+				req.Comments = "2/10";
+
+			context.SaveChanges();
+		}
+	}
+
+	private readonly Regex _trainingComment = new(@"(\d+)/(\d+)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+	private int GetTrainingPercentage(TrainingRequest req)
+	{
+		string comment = req.Comments.Split('\n')[0];
+		var match = _trainingComment.Match(comment);
+
+		if (!match.Success)
+			return 25;
+
+		int num = int.Parse(match.Groups[1].Value),
+			denom = int.Parse(match.Groups[2].Value);
+
+		return denom > 0 ? num * 100 / denom : 100;
+	}
+}

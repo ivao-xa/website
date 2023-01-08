@@ -1,5 +1,5 @@
 ﻿<section class="@Class">
-    <div class="container">
+    <div class="@ContainerClass">
         <div class="row d-flex flex-row @FlexClass">
             <CascadingValue Value="this">
                 @ChildContent
@@ -10,10 +10,13 @@
 
 @code {
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment ChildContent { get; set; } = default;
 
     [Parameter]
     public string Class { get; set; } = "";
+
+    [Parameter]
+    public string ContainerClass { get; set; } = "container";
 
     [Parameter]
     public string FlexClass { get; set; } = "";

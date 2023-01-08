@@ -1,6 +1,8 @@
-using Microsoft.AspNetCore.Components;
+using Blazorise;
+using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
+
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.EntityFrameworkCore;
 
 using Website.Data;
@@ -15,10 +17,11 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<ProtectedSessionStorage>();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<IvaoLoginService>();
-builder.Services.AddDbContextFactory<WebsiteContext>(options => options.UseMySQL($"server=xa.ivao.aero;database=xaivao_web;user=xaivao_web;password={builder.Configuration["xaivao_web_password"]}"));
+builder.Services.AddDbContextFactory<WebsiteContext>(options => options.UseMySQL($"server=division.ivao.aero;database=xaivao_web;user=xaivao_web;password={builder.Configuration["xaivao_web_password"]}", msoa => msoa.CommandTimeout(5)));
 builder.Services.AddSingleton<WhazzupService>();
 builder.Services.AddSingleton<IvaoApiService>();
 builder.Services.AddSingleton<DiscordService>();
+builder.Services.AddBlazorise(o => o.Immediate = true).AddBootstrap5Providers().AddFontAwesomeIcons();
 
 var app = builder.Build();
 

@@ -1,0 +1,145 @@
+﻿@page "/training/edit"
+@using Blazorise.Markdown
+@using Markdig;
+@using Website.Data;
+
+<Authenticated RequiredRoles="DiscordRoles.Training">
+	<Staff>
+		<FullwidthContainer Class="w-100 py-2">
+			<ContainerColumn Class="d-flex flex-column mx-1" Style="gap: 10px;">
+				@{
+					var (ars, prs) = GetFileStructure();
+				}
+				@foreach (var kvp in ars)
+				{
+					<div class="d-flex flex-column">
+						<img src="https://ivao.aero/data/images/ratings/atc/@((int)kvp.Key).gif" class="mx-auto w-50" title="@kvp.Key" />
+						@foreach (var fp in kvp.Value.OrderBy(v => v))
+						{
+							<div class="input-group">
+								<button class="btn btn-primary p-0 mt-2 form-control" id="@(kvp.Key + Path.GetFileNameWithoutExtension(fp))" @onclick="_ => LoadStep(fp)">Step @(Path.GetFileNameWithoutExtension(fp))</button>
+								<button class="btn btn-primary py-0 mt-2" @onclick="_ => SwapStep(fp)">@(Path.GetExtension(fp) == ".md" ? "T" : "X")</button>
+								@if (int.Parse(Path.GetFileNameWithoutExtension(fp)) == kvp.Value.Count())
+								{
+									<button class="btn btn-danger py-0 mt-2 small" @onclick="_ => RemoveStep(fp)"><i class="oi oi-trash" /></button>
+								}
+							</div>
+						}
+						<button class="btn btn-success p-0 mt-2" @onclick="_ => AddStep(kvp.Key, kvp.Value.Count() + 1)">+ Step @(kvp.Value.Count() + 1)</button>
+					</div>
+				}
+				@foreach (var kvp in prs)
+				{
+					<div class="d-flex flex-column">
+						<img src="https://ivao.aero/data/images/ratings/pilot/@((int)kvp.Key).gif" class="mx-auto w-50" title="@kvp.Key" />
+						@foreach (var fp in kvp.Value.OrderBy(v => v))
+						{
+							<div class="input-group">
+								<button class="btn btn-primary p-0 mt-2 form-control" id="@(kvp.Key + Path.GetFileNameWithoutExtension(fp))" @onclick="_ => LoadStep(fp)">Step @(Path.GetFileNameWithoutExtension(fp))</button>
+								<button class="btn btn-primary py-0 mt-2" @onclick="_ => SwapStep(fp)">@(Path.GetExtension(fp) == ".md" ? "T" : "X")</button>
+								@if (int.Parse(Path.GetFileNameWithoutExtension(fp)) == kvp.Value.Count())
+								{
+									<button class="btn btn-danger py-0 mt-2 small" @onclick="_ => RemoveStep(fp)"><i class="oi oi-trash" /></button>
+								}
+							</div>
+						}
+						<button class="btn btn-success p-0 mt-2" @onclick="_ => AddStep(kvp.Key, kvp.Value.Count() + 1)">+ Step @(kvp.Value.Count() + 1)</button>
+					</div>
+				}
+			</ContainerColumn>
+			<ContainerColumn ColSpan="4">
+				<Markdown Value="@markdownValue" ValueChanged="@OnMarkdownValueChangedAsync" Class="h-100" />
+			</ContainerColumn>
+		</FullwidthContainer>
+	</Staff>
+</Authenticated>
+
+@code {
+	string? markdownValue = "# Test\nThis is a test thing.";
+	string? filePath;
+
+	readonly MarkdownPipeline mdPipeline = new MarkdownPipelineBuilder().UseBootstrap().UseAdvancedExtensions().Build();
+	string markdownHtml => Path.GetExtension(filePath ?? "") == ".csv" ? Markdig.Markdown.ToHtml("```csv" + (markdownValue ?? string.Empty) + "```") : Markdig.Markdown.ToHtml(markdownValue ?? string.Empty, mdPipeline);
+
+	async Task OnMarkdownValueChangedAsync(string value)
+	{
+		markdownValue = value;
+
+		if (filePath is not null)
+			await File.WriteAllTextAsync(filePath, markdownValue);
+	}
+
+	(Dictionary<AtcRating, IEnumerable<string>>, Dictionary<PilotRating, IEnumerable<string>>) GetFileStructure()
+	{
+		Dictionary<AtcRating, IEnumerable<string>> retval1 = new();
+		Dictionary<PilotRating, IEnumerable<string>> retval2 = new();
+
+		foreach (AtcRating ar in Enum.GetValues<AtcRating>())
+		{
+			if (ar is AtcRating.AS1 or AtcRating.SAI or AtcRating.CAI)
+				continue;
+
+			string folder = Path.Join("training", "data", Enum.GetName(ar));
+
+			if (!Directory.Exists(folder))
+				Directory.CreateDirectory(folder);
+
+			retval1.Add(ar, Directory.GetFiles(folder, "*.md").Concat(Directory.GetFiles(folder, "*.csv")));
+		}
+
+		foreach (PilotRating pr in Enum.GetValues<PilotRating>())
+		{
+			if (pr is PilotRating.FS1 or > PilotRating.ATP)
+				continue;
+
+			string folder = Path.Join("training", "data", Enum.GetName(pr));
+
+			if (!Directory.Exists(folder))
+				Directory.CreateDirectory(folder);
+
+			retval2.Add(pr, Directory.GetFiles(folder, "*.md").Concat(Directory.GetFiles(folder, "*.csv")));
+		}
+
+		return (retval1, retval2);
+	}
+
+	void AddStep<T>(T rating, int stepNum) where T : notnull
+	{
+		File.Create(Path.Join("training", "data", Enum.GetName(typeof(T), rating), stepNum + ".md")).Close();
+		StateHasChanged();
+	}
+
+	void LoadStep(string fp)
+	{
+		filePath = fp;
+		markdownValue = File.ReadAllText(filePath);
+		StateHasChanged();
+	}
+
+	void SwapStep(string fp)
+	{
+		File.Delete(fp);
+
+		string newPath;
+
+		if (Path.GetExtension(fp) == ".md")
+		{
+			newPath = Path.ChangeExtension(fp, ".csv");
+			var tmp = File.CreateText(newPath);
+			tmp.WriteLine("question,correctAnswer,answer2,answer3,answer4,answer5,answer6,answer7,answer8,answer9");
+			tmp.Close();
+		}
+		else
+		{
+			newPath = Path.ChangeExtension(fp, ".md");
+			File.Create(newPath).Close();
+		}
+
+		LoadStep(newPath);
+	}
+
+	void RemoveStep(string fp)
+	{
+		File.Delete(fp);
+	}
+}

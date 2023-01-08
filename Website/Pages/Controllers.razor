@@ -7,80 +7,131 @@
 @inject IDbContextFactory<WebsiteContext> ContextFactory
 
 <div class="container-fluid mt-3">
-    <h2 class="text-center">ATC Roster</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th scope="col">VID</th>
-                <Authenticated>
-                    <th scope="col">Name</th>
-                </Authenticated>
-                <th scope="col">Status</th>
-                <th scope="col" class="text-center">Rating</th>
-                <th scope="col">FAA</th>
-                <th scope="col">NavCan</th>
-                <th scope="col">Endorsements</th>
-            </tr>
-        </thead>
-        <tbody>
-            <Authenticated>
-                <ChildContent>
-                    @foreach (User user in (string.IsNullOrWhiteSpace(context.Staff) ? _users?.Where(u => u.LastControlTime >= minControlTime) : _users) ?? Array.Empty<User>())
-                    {
-                        <ControllerRosterRow user="user" AuthenticationContext="context" Fras="_fras" CheckoutChanged="(_, _) => _ = UpdateUsersAsync()" />
-                    }
-                </ChildContent>
-                <Loading>
-                    @foreach (User user in _users?.Where(u => u.LastControlTime >= minControlTime) ?? Array.Empty<User>())
-                    {
-                        <ControllerRosterRow user="user" AuthenticationContext="null" Fras="_fras" />
-                    }
-                </Loading>
-            </Authenticated>
-        </tbody>
-    </table>
+	<h2 class="text-center">ATC Roster</h2>
+	<table class="table">
+		<thead>
+			<tr>
+				<th scope="col">VID</th>
+				<Authenticated>
+					<th scope="col">Name</th>
+				</Authenticated>
+				<th scope="col">Status</th>
+				<th scope="col" class="text-center">Rating</th>
+				<th scope="col">FAA</th>
+				<th scope="col">NavCan</th>
+				<th scope="col">Endorsements</th>
+			</tr>
+		</thead>
+		<tbody>
+			<Authenticated>
+				<ChildContent>
+					@foreach (User user in (string.IsNullOrWhiteSpace(context.Staff) ? _users?.Where(u => u.LastControlTime >= minControlTime) : _users) ?? Array.Empty<User>())
+					{
+						<ControllerRosterRow user="user" AuthenticationContext="context" Fras="_fras" CheckoutChanged="(_, _) => _ = UpdateUsersAsync()" />
+					}
+				</ChildContent>
+				<Loading>
+					@foreach (User user in _users?.Where(u => u.LastControlTime >= minControlTime) ?? Array.Empty<User>())
+					{
+						<ControllerRosterRow user="user" AuthenticationContext="null" Fras="_fras" />
+					}
+				</Loading>
+			</Authenticated>
+		</tbody>
+	</table>
 </div>
 
 @code {
-    private User[]? _users = null;
-    private Dictionary<int, Dictionary<string, bool>> _fras = new();
-    private DateTime minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
+	private User[]? _users = null;
+	private DateTime minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender)
-            return;
+	private static SemaphoreSlim _updateFras = new(1);
+	private static Dictionary<int, Dictionary<string, (string Link, bool Perpetual, bool Redundant)>>? _fras = new();
+	private static DateTime _frasUpdated = DateTime.MinValue;
 
-        foreach (Fra fra in await Api.GetFrasAsync(vidBased: true, ratingBased: false) ?? new())
-        {
-            if (fra.userId is null)
-                continue;
+	protected override async Task OnAfterRenderAsync(bool firstLoad)
+	{
+		if (!firstLoad)
+			return;
 
-            int vid = fra.userId.Value;
+		if (_users is null)
+			await UpdateUsersAsync();
 
-            if (!_fras.ContainsKey(vid))
-                _fras.Add(vid, new());
+		_ = Task.Run(async () => { while (true) { await Task.Delay(TimeSpan.FromSeconds(10)); await UpdateUsersAsync(); await UpdateFrasAsync(); } });
+		StateHasChanged();
+	}
 
-            bool isPerpetual =
-                fra.active && fra.daySun && fra.dayMon && fra.dayTue &&
-                fra.dayWed && fra.dayThu && fra.dayFri && fra.daySat &&
-                fra.startTime == "00:00:00" && fra.endTime == "00:00:00";
+	private async Task UpdateFrasAsync()
+	{
+		await _updateFras.WaitAsync();
 
-            string formatPosition =
-                fra.atcPosition is not null
-                ? $"{fra.atcPosition.airportId} {fra.atcPosition.position}"
-                : $"{fra.subcenter!.centerId[1..]} {fra.subcenter.position}";
+		if (_fras is not null && DateTime.UtcNow - _frasUpdated < TimeSpan.FromSeconds(30))
+		{
+			_updateFras.Release();
+			return;
+		}
 
-            _fras[vid].TryAdd(formatPosition, isPerpetual);
-        }
+		_fras?.Clear();
+		_fras ??= new();
 
-        await UpdateUsersAsync();
-    }
+		Dictionary<string, HashSet<Fra>> ratingFras =
+			new(
+				(await Api.GetFrasAsync(vidBased: false, ratingBased: true) ?? Array.Empty<Fra>())
+				.GroupBy(f => f.subcenter?.composePosition ?? f.atcPosition?.composePosition ?? "")
+				.Select(g => new KeyValuePair<string, HashSet<Fra>>(g.Key, g.ToHashSet()))
+			);
 
-    private async Task UpdateUsersAsync()
-    {
-        var allUsers = (await ContextFactory.CreateDbContextAsync()).Users.AsNoTracking().ToArray();
-        _users = allUsers.OrderByDescending(u => u.LastControlTime).ToArray();
-        StateHasChanged();
-    }
+		Dictionary<int, AtcRating?> ratings = new(_users?.Select(u => new KeyValuePair<int, AtcRating?>(u.Vid, u.RatingAtc)) ?? Array.Empty<KeyValuePair<int, AtcRating?>>());
+
+		foreach (Fra fra in await Api.GetFrasAsync(vidBased: true, ratingBased: false) ?? Array.Empty<Fra>())
+		{
+			if (fra.userId is null)
+				continue;
+
+			int vid = fra.userId.Value;
+
+			if (!_fras.ContainsKey(vid))
+				_fras.Add(vid, new());
+
+			bool isPerpetual =
+				fra.active && fra.daySun && fra.dayMon && fra.dayTue &&
+				fra.dayWed && fra.dayThu && fra.dayFri && fra.daySat &&
+				fra.startTime == "00:00:00" && fra.endTime == "00:00:00";
+
+			string? posId = fra.subcenter?.composePosition ?? fra.atcPosition?.composePosition;
+			bool isRedundant =
+				posId is not null &&
+				ratings.TryGetValue(vid, out AtcRating? atcRating) &&
+				atcRating is not null &&
+				ratingFras.TryGetValue(posId, out var fras) &&
+				fras.Any(f => f.active && f.minAtc is not null && f.minAtc.Value <= (int)atcRating);
+
+			string formatPositionId =
+			fra.atcPosition is null
+			? fra.subcenter!.centerId switch
+			{
+				"PAZA" => "ZAN",
+				"PHZH" => "ZHN",
+				_ => fra.subcenter!.centerId[1..]
+			}
+			: fra.atcPosition.airportId;
+
+			string formatPosition = $"{formatPositionId} {(fra.atcPosition is null ? fra.subcenter!.position : fra.atcPosition.position)}";
+
+			string link = $"https://data.ivao.aero/{(fra.atcPosition is null ? "centers" : "airports")}/info/{fra.atcPosition?.airportId ?? fra.subcenter?.centerId ?? ""}";
+
+			_fras[vid].TryAdd(formatPosition, (link, isPerpetual, isRedundant));
+		}
+
+		_frasUpdated = DateTime.UtcNow;
+		_updateFras.Release();
+		await InvokeAsync(StateHasChanged);
+		return;
+	}
+
+	private async Task UpdateUsersAsync()
+	{
+		var allUsers = (await ContextFactory.CreateDbContextAsync()).Users.AsNoTracking().ToArray();
+		_users = allUsers.OrderByDescending(u => u.LastControlTime).ToArray();
+	}
 }

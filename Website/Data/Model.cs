@@ -148,7 +148,8 @@ public class TrainingRequest
 {
 	public int Id { get; set; }
 
-    public AtcRating Rating { get; set; }
+    public AtcRating? AtcRating { get; set; }
+    public PilotRating? PilotRating { get; set; }
     public int Trainee { get; set; }
     public int? Trainer { get; set; }
     public string Position { get; set; } = string.Empty;
