@@ -1,5 +1,107 @@
-﻿<h3>AcademyExam</h3>
+﻿<FullwidthContainer Class="container" FlexClass="my-4">
+	<ContainerColumn Class="d-flex flex-column">
+		@for (int i = 0; i < _questions.Count; ++i)
+		{
+			<button class="btn btn-@(i == _questionIdx ? "success" : i < _questionIdx ? "primary" : "disabled") mb-2">Question @(i + 1)</button>
+		}
+	</ContainerColumn>
+	<ContainerColumn ColSpan="3">
+		<div>
+			@if (_questionIdx < _questions.Count)
+			{
+				<h3>@_questions[_questionIdx].Question</h3>
+				<div class="d-flex flex-row flex-wrap">
+					@foreach (string a in GetAnswers())
+					{
+						<button class="btn btn-primary col-4 m-2" @onclick="_ => Answered(a)">@a</button>
+					}
+				</div>
+			}
+			else if (total > 0 && correct == total)
+			{
+				<h3>You scored @correct/@total</h3>
+				<div class="row mt-4">
+					@if (Prev is not null)
+					{
+						<button class="btn btn-secondary col-2 me-2" @onclick="_ => Prev()">Previous</button>
+					}
+					@if (Next is not null)
+					{
+						<button class="btn btn-primary col-2" @onclick="_ => Next()">Next</button>
+					}
+				</div>
+			}
+			else
+			{
+				<h3>You scored @correct/@total</h3>
+				<div class="row mt-4">
+					@if (Prev is not null)
+					{
+						<button class="btn btn-secondary col-2 me-2" @onclick="_ => Prev()">Previous</button>
+					}
+
+					<button class="btn btn-primary col-2" @onclick="_ => OnParametersSetAsync()">Retry</button>
+				</div>
+			}
+		</div>
+	</ContainerColumn>
+</FullwidthContainer>
 
 @code {
+	[Parameter]
+	public string FilePath { get; set; } = "";
 
+	[Parameter]
+	public Action? Next { get; set; }
+
+	[Parameter]
+	public Action? Prev { get; set; }
+
+	private List<(string Question, (string Answer, string[] Chaff) Answers)> _questions = new();
+	private int _questionIdx = 0;
+
+	protected override async Task OnParametersSetAsync()
+	{
+		_questionIdx = 0;
+		total = 0;
+		correct = 0;
+		var lines = await File.ReadAllLinesAsync(FilePath);
+		_questions.Clear();
+
+		foreach (string[] elems in lines.Skip(1).Select(l => l.Split(',').Select(i => i.Trim()).ToArray()))
+			_questions.Add((elems[0], (elems[1], elems.Skip(2).ToArray())));
+
+		while (_questions.Count > 5)
+			_questions.RemoveAt(Random.Shared.Next(_questions.Count));
+
+		_questions = _questions.OrderBy(_ => Random.Shared.Next()).ToList();
+
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private IEnumerable<string> GetAnswers()
+	{
+		var q = _questions[_questionIdx].Answers;
+		List<string> chaff = q.Chaff.ToList();
+		List<string> retval = new() { q.Answer };
+
+		while (chaff.Any() && retval.Count < 4)
+		{
+			int idx = Random.Shared.Next(chaff.Count);
+			retval.Add(chaff[idx]);
+			chaff.RemoveAt(idx);
+		}
+
+		return retval.OrderBy(_ => Random.Shared.Next());
+	}
+
+	int correct = 0, total = 0;
+
+	private void Answered(string choice)
+	{
+		if (choice == _questions[_questionIdx++].Answers.Answer)
+			correct++;
+
+		total++;
+	}
 }

@@ -16,12 +16,20 @@
 				</Authenticated>
 				<Authenticated RequiredRoles="DiscordRoles.Training">
 					<Staff>
-						<NavLink class="nav-link" href="/training/staff">Training</NavLink>
+						<NavLink class="nav-link" href="/training/staff">Trainings</NavLink>
+						@if (_currentTrainee)
+						{
+							<NavLink class="nav-link" href="/training/student">Academy</NavLink>
+						}
+						else
+						{
+							<NavLink class="nav-link" href="/training/edit">Academy</NavLink>
+						}
 					</Staff>
 					<Unauthorized>
 						@if (_currentTrainee)
 						{
-							<NavLink class="nav-link" href="/training/student">Training</NavLink>
+							<NavLink class="nav-link" href="/training/student">Academy</NavLink>
 						}
 					</Unauthorized>
 				</Authenticated>

@@ -19,7 +19,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					@foreach (var training in GetTrainings())
+					@foreach (var (training, trainee) in GetTrainings())
 					{
 						<tr class="align-middle">
 							<td>
@@ -37,12 +37,28 @@
 									}
 								</select>
 							</td>
-							<td>@training.Trainee</td>
+							<td>
+								<a href="https://ivao.aero/Member.aspx?Id=@(training.Trainee)" target="_blank">
+									@(trainee?.ToString() ?? training.Trainee.ToString())
+								</a>
+							</td>
 							<td><img src="https://ivao.aero/data/images/ratings/atc/@(((int?)training.AtcRating ?? (int?)training.PilotRating)!.Value).gif" title="@(training.AtcRating is null ? Enum.GetName(training.PilotRating!.Value) : Enum.GetName(training.AtcRating!.Value))"></td>
 							<td>
-								<div class="text-center" style="background-color: #f1f1f1;">
-									<div style="background-color: #4caf50; width: @GetTrainingPercentage(training)%">@GetTrainingPercentage(training)%</div>
-								</div>
+								@if (GetTrainingPercentage(training) == 100)
+								{
+									<div class="input-group">
+										<div class="text-center form-control p-0" style="background-color: #f1f1f1;">
+											<div style="background-color: #4caf50; width: @GetTrainingPercentage(training)%">@GetTrainingPercentage(training)%</div>
+										</div>
+										<button class="btn btn-danger py-0" @onclick="_ => Delete(training)"><i class="oi oi-trash" /></button>
+									</div>
+								}
+								else
+								{
+									<div class="text-center" style="background-color: #f1f1f1;">
+										<div style="background-color: #4caf50; width: @GetTrainingPercentage(training)%">@GetTrainingPercentage(training)%</div>
+									</div>
+								}
 							</td>
 						</tr>
 					}
@@ -58,10 +74,10 @@
 </Authenticated>
 
 @code {
-	private IEnumerable<TrainingRequest> GetTrainings()
+	private IEnumerable<(TrainingRequest req, User? trainee)> GetTrainings()
 	{
 		var context = ContextFactory.CreateDbContext();
-		return context.TrainingRequests.AsNoTracking();
+		return context.TrainingRequests.AsNoTracking().ToArray().Select(req => (req, context.Users.Find(req.Trainee)));
 	}
 
 	private IEnumerable<User> GetTrainers()
@@ -98,5 +114,13 @@
 			denom = int.Parse(match.Groups[2].Value);
 
 		return denom > 0 ? num * 100 / denom : 100;
+	}
+
+	private async void Delete(TrainingRequest req)
+	{
+		var context = await ContextFactory.CreateDbContextAsync();
+		context.TrainingRequests.Remove(req);
+		await context.SaveChangesAsync();
+		await InvokeAsync(StateHasChanged);
 	}
 }

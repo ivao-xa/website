@@ -120,6 +120,7 @@ public class DiscordService
 		Regex trainer = new(@"\bXA-(T[CA0]|A?DIR)");
 		Regex membership = new(@"\bXA-(M(AC?|C)|A?DIR)");
 		Regex events = new(@"\bXA-(E(AC?|C)|A?DIR)");
+		Regex administrator = new(@"\bXA-(A?WM|WMA\d|A?DIR)");
 		void setFlag(bool set, DiscordRoles flag)
 		{
 			if (set)
@@ -131,6 +132,7 @@ public class DiscordService
 		setFlag(user.Staff is not null && trainer.IsMatch(user.Staff), DiscordRoles.Training);
 		setFlag(user.Staff is not null && membership.IsMatch(user.Staff), DiscordRoles.Membership);
 		setFlag(user.Staff is not null && events.IsMatch(user.Staff), DiscordRoles.Events);
+		setFlag(user.Staff is not null && administrator.IsMatch(user.Staff), DiscordRoles.Administrator);
 
 		bool isMember = (await api.GetCountriesAsync()).SelectMany(c => new[] { c.id, c.divisionId }).Contains(user.Division);
 		setFlag(isMember && !string.IsNullOrEmpty(user.Staff), DiscordRoles.Staff);
