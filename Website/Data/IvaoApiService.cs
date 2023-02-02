@@ -15,10 +15,17 @@ public class IvaoApiService
     private HashSet<Fra>? _fras = null;
     private DateTime _frasUpdated = DateTime.MinValue;
 
+    private static readonly SemaphoreSlim _updateSemaphore = new(1);
+
     public async Task<IEnumerable<Fra>?> GetFrasAsync(string division = "XA", bool vidBased = true, bool ratingBased = true)
     {
-        if (_fras is not null && DateTime.Now - _frasUpdated < TimeSpan.FromMinutes(1))
+        await _updateSemaphore.WaitAsync();
+
+        if (_fras is not null && DateTime.UtcNow - _frasUpdated < TimeSpan.FromMinutes(5))
+        {
+            _updateSemaphore.Release();
             return _fras.Where(f => (vidBased || f.userId is null) && (ratingBased || f.minAtc is null));
+        }
 
         try
         {
@@ -39,12 +46,16 @@ public class IvaoApiService
                 _fras.UnionWith(pg.items);
             }
 
-            _frasUpdated = DateTime.Now;
-            return await GetFrasAsync(division, vidBased, ratingBased);
+            _frasUpdated = DateTime.UtcNow;
+            return _fras.Where(f => (vidBased || f.userId is null) && (ratingBased || f.minAtc is null));
         }
         catch
         {
             return null;
+        }
+        finally
+        {
+            _updateSemaphore.Release();
         }
     }
 
@@ -79,13 +90,13 @@ public class Fra
     public int? subcenterId { get; set; }
     public string startTime { get; set; } = string.Empty;
     public string endTime { get; set; } = string.Empty;
-    public bool dayMon { get; set; }
-    public bool dayTue { get; set; }
-    public bool dayWed { get; set; }
-    public bool dayThu { get; set; }
-    public bool dayFri { get; set; }
-    public bool daySat { get; set; }
-    public bool daySun { get; set; }
+    public bool? dayMon { get; set; }
+    public bool? dayTue { get; set; }
+    public bool? dayWed { get; set; }
+    public bool? dayThu { get; set; }
+    public bool? dayFri { get; set; }
+    public bool? daySat { get; set; }
+    public bool? daySun { get; set; }
     public string date { get; set; } = string.Empty;
     public int? minAtc { get; set; }
     public bool active { get; set; }

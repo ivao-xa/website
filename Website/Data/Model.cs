@@ -58,6 +58,8 @@ public enum DiscordRoles : ulong
 	Controller	= 0b01_00,
 	Pilot		= 0b10_00,
 
+	Announcement	= 0b01_00_00,
+
 	Training	= 0b0001_00_00_00,
 	Membership	= 0b0010_00_00_00,
 	Events		= 0b0100_00_00_00,

@@ -111,6 +111,12 @@
 
 	private DateTime minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
 
+	protected override void OnParametersSet()
+	{
+		base.OnParametersSet();
+		StateHasChanged();
+	}
+
 	private string GetButtonClasses(User user, AtcRating trainingRating, AtcRating completeRating, bool canada)
 	{
 		return ((!canada && !user.FaaChecked) || (canada && !user.NavCanChecked) || ((user.RatingAtc ?? 0) < trainingRating))

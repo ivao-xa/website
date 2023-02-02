@@ -16,15 +16,20 @@
 				</Authenticated>
 				<Authenticated RequiredRoles="DiscordRoles.Training">
 					<Staff>
-						<NavLink class="nav-link" href="/training/staff">Trainings</NavLink>
-						@if (_currentTrainee)
-						{
-							<NavLink class="nav-link" href="/training/student">Academy</NavLink>
-						}
-						else
-						{
-							<NavLink class="nav-link" href="/training/edit">Academy</NavLink>
-						}
+						<div class="nav-item dropdown">
+							<a href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" class="nav-link dropdown-toggle">Training</a>
+							<ul class="dropdown-menu dropdown-menu-dark">
+								<li><NavLink class="nav-link dropdown-item" href="/training/staff">Trainings</NavLink></li>
+								@if (_currentTrainee)
+								{
+									<li><NavLink class="nav-link dropdown-item" href="/training/student">Academy</NavLink></li>
+								}
+								else
+								{
+									<li><NavLink class="nav-link dropdown-item" href="/training/edit">Academy</NavLink></li>
+								}
+							</ul>
+						</div>
 					</Staff>
 					<Unauthorized>
 						@if (_currentTrainee)

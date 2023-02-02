@@ -19,6 +19,19 @@ public class DiscordService
 	internal readonly DiscordSocketClient _client = new(new DiscordSocketConfig() { GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers });
 	private readonly IDbContextFactory<WebsiteContext> _webContextFactory;
 
+	private readonly Dictionary<DiscordRoles, ulong> _roles = new()
+	{
+		{ DiscordRoles.Administrator,  1012841779961282661ul },
+		{ DiscordRoles.Membership, 1012841935339278428ul },
+		{ DiscordRoles.Training, 1012842037705445496ul },
+		{ DiscordRoles.Pilot, 1012842085684105318ul },
+		{ DiscordRoles.Controller, 1012842152797151282ul },
+		{ DiscordRoles.Staff, 1012842187848945786ul },
+		{ DiscordRoles.Member, 1012842226692407366ul },
+		{ DiscordRoles.Events, 1021270560770113558ul },
+		{ DiscordRoles.Announcement, 1062870450297905263ul },
+	};
+
 	public async Task<bool> SendMessageAsync(string channelName, string message)
 	{
 		if (FindTextChannelByName(channelName) is not SocketTextChannel stc)
@@ -141,24 +154,11 @@ public class DiscordService
 		if (user.Snowflake is null)
 			return user.Roles;
 
-		static IEnumerable<ulong> roleToSnowflakes(DiscordRoles roles)
+		IEnumerable<ulong> roleToSnowflakes(DiscordRoles roles)
 		{
-			if (roles.HasFlag(DiscordRoles.Member))
-				yield return 1012842226692407366UL; // bot-1
-			if (roles.HasFlag(DiscordRoles.Staff))
-				yield return 1012842187848945786UL; // bot-2
-			if (roles.HasFlag(DiscordRoles.Controller))
-				yield return 1012842152797151282UL; // bot-4
-			if (roles.HasFlag(DiscordRoles.Pilot))
-				yield return 1012842085684105318UL; // bot-8
-			if (roles.HasFlag(DiscordRoles.Training))
-				yield return 1012842037705445496UL; // bot-64
-			if (roles.HasFlag(DiscordRoles.Membership))
-				yield return 1012841935339278428UL; // bot-128
-			if (roles.HasFlag(DiscordRoles.Events))
-				yield return 1021270560770113558UL; // bot-256
-			if (roles.HasFlag(DiscordRoles.Administrator))
-				yield return 1012841779961282661UL; // bot-max
+			for (int shift = 0; shift < 64; ++shift)
+				if (roles.HasFlag((DiscordRoles)((ulong)1 << shift)))
+					yield return _roles[(DiscordRoles)((ulong)1 << shift)];
 		}
 
 		var ivao = _client.Guilds.Single();
@@ -202,6 +202,7 @@ public class DiscordService
 	private async Task LaunchAsync(string token, WhazzupService whazzup)
 	{
 		Dictionary<ATC, User?> trackedControllers = new();
+		Dictionary<ATC, ulong> trainingExamAnnouncements = new();
 
 		_client.Log += LogAsync;
 		_client.MessageReceived += async msg =>
@@ -281,6 +282,7 @@ public class DiscordService
 					}
 
 					await context.SaveChangesAsync();
+					await UpdateTrainingChannelsAsync(context);
 					break;
 
 				default:
@@ -364,7 +366,7 @@ public class DiscordService
 				foreach (var channel in scc.Channels.Where(c => !catNames.Contains(c.Name) || (c is SocketTextChannel && category.Channels.First(cc => cc.Name == c.Name).Voice) || (c is SocketVoiceChannel && !category.Channels.First(cc => cc.Name == c.Name).Voice)))
 					await channel.DeleteAsync();
 
-				foreach (var channel in category.Channels.Select(c => new DiscordConfigChannel() { Name = "_" + c.Name, Permissions = c.Permissions, Voice = c.Voice, Messages = c.Messages }))
+				foreach (var channel in category.Channels.Select(c => new DiscordConfigChannel() { Name = "_" + c.Name, Permissions = c.Permissions, Voice = c.Voice, Messages = c.Messages, Limit = c.Limit }))
 				{
 					if (channel.Voice)
 					{
@@ -378,7 +380,7 @@ public class DiscordService
 						}
 
 						await svc.SyncPermissionsAsync();
-						await svc.ModifyAsync(acp => { acp.PermissionOverwrites = new(getOverwrites(channel.Permissions)); acp.CategoryId = new(scc.Id); });
+						await svc.ModifyAsync(acp => { acp.PermissionOverwrites = new(getOverwrites(channel.Permissions)); acp.CategoryId = new(scc.Id); if (channel.Limit > 0) acp.UserLimit = new(channel.Limit); });
 					}
 					else
 					{
@@ -436,17 +438,26 @@ public class DiscordService
 							}
 						) ?? Task.CompletedTask
 					);
+
+					await UpdateTrainingChannelsAsync(await _webContextFactory.CreateDbContextAsync());
 				}
 
+				Regex trainerExaminerCallsign = new(@"^[A-Z]{4}_[XT]_(TWR|APP|CTR)$", RegexOptions.ExplicitCapture | RegexOptions.Compiled);
 				whazzup.AtcConnected += async controller =>
 				{
 					var context = await _webContextFactory.CreateDbContextAsync();
-					trackedControllers.Add(controller, context.Users.AsNoTracking().First(u => u.Vid == controller.UserId));
-					List<string> admins = new() { "bot-administrator", "Bots" };
-					if (trackedControllers[controller] is User u && u.Snowflake is ulong s)
-						admins.Add(s.ToString());
 
-					await ivao.CreateVoiceChannelAsync(controller.Callsign, vcp => { vcp.CategoryId = onlineCategory.Id; vcp.PermissionOverwrites = new(getOverwrites(new() { Deny = new[] { "*" }, Read = Array.Empty<string>(), Write = new[] { "bot-member" }, Admin = admins.ToArray() })); });
+					if (trainerExaminerCallsign.IsMatch(controller.Callsign) && FindTextChannelByName("trainings-exams") is SocketTextChannel announcementChannel)
+						trainingExamAnnouncements.Add(controller, (await announcementChannel.SendMessageAsync(text: $"<@{_roles[DiscordRoles.Announcement]}>! Come join us for a {(controller.Callsign.Split('_')[1] == "X" ? "training" : "exam")} at {controller.Callsign.Split('_')[0]}.")).Id);
+					else
+					{
+						trackedControllers.Add(controller, context.Users.AsNoTracking().First(u => u.Vid == controller.UserId));
+						List<string> admins = new() { "bot-administrator", "Bots" };
+						if (trackedControllers[controller] is User u && u.Snowflake is ulong s)
+							admins.Add(s.ToString());
+
+						await ivao.CreateVoiceChannelAsync(controller.Callsign, vcp => { vcp.CategoryId = onlineCategory.Id; vcp.PermissionOverwrites = new(getOverwrites(new() { Deny = new[] { "*" }, Read = Array.Empty<string>(), Write = new[] { "bot-member" }, Admin = admins.ToArray() })); });
+					}
 					await updateAsync();
 				};
 
@@ -474,7 +485,8 @@ public class DiscordService
 					finally { foreach (var c in onlineCategory.Channels) await c.DeleteAsync(); await onlineCategory.DeleteAsync(); }
 				});
 			}
-			
+
+			await ivao.DeleteApplicationCommandsAsync();
 			await ivao.CreateApplicationCommandAsync(new SlashCommandBuilder()
 				.WithName("train-atc")
 				.WithDescription("Add a training with yourself as the trainer.")
@@ -492,6 +504,34 @@ public class DiscordService
 		await _client.StartAsync();
 
 		await Task.Delay(-1);
+	}
+
+	public async Task UpdateTrainingChannelsAsync(WebsiteContext context)
+	{
+		var category = FindCategoryByName("[-TRAINING-]");
+
+		if (category is null)
+		{
+			await _client.Guilds.Single().CreateCategoryChannelAsync("[-TRAINING-]");
+			category = FindCategoryByName("[-TRAINING-]")!;
+		}
+
+		var knownChannels = category.Channels.Select(c => c.Name).ToHashSet();
+
+		foreach (var tr in context.TrainingRequests.AsNoTracking())
+		{
+			string channelName = $"{tr.Trainee} ({tr.AtcRating?.ToString() ?? tr.PilotRating!.ToString()})";
+			if (knownChannels.Contains(channelName))
+			{
+				knownChannels.Remove(channelName);
+				continue;
+			}
+
+			await _client.Guilds.Single().CreateTextChannelAsync(channelName, tcp => tcp.CategoryId = new(category.Id));
+		}
+
+		foreach (var deletedChannel in knownChannels)
+			await (FindTextChannelByName(deletedChannel)?.DeleteAsync() ?? Task.CompletedTask);
 	}
 
 	const string LOG_FILE = "discord.log";
@@ -520,6 +560,7 @@ internal class DiscordConfigChannel
 	public DiscordConfigPermissions Permissions { get; set; } = new();
 	public bool Voice { get; set; } = false;
 	public string[]? Messages { get; set; } = null;
+	public int Limit { get; set; } = -1;
 
 	public override string ToString() => Name;
 }

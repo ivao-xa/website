@@ -46,7 +46,7 @@
 	private DateTime minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
 
 	private static SemaphoreSlim _updateFras = new(1);
-	private static Dictionary<int, Dictionary<string, (string Link, bool Perpetual, bool Redundant)>>? _fras = new();
+	private static Dictionary<int, Dictionary<string, (string Link, bool Perpetual, bool Redundant)>>? _fras = null;
 	private static DateTime _frasUpdated = DateTime.MinValue;
 
 	protected override async Task OnAfterRenderAsync(bool firstLoad)
@@ -65,7 +65,7 @@
 	{
 		await _updateFras.WaitAsync();
 
-		if (_fras is not null && DateTime.UtcNow - _frasUpdated < TimeSpan.FromSeconds(30))
+		if (_fras is not null && DateTime.UtcNow - _frasUpdated < TimeSpan.FromMinutes(5))
 		{
 			_updateFras.Release();
 			return;
@@ -94,8 +94,10 @@
 				_fras.Add(vid, new());
 
 			bool isPerpetual =
-				fra.active && fra.daySun && fra.dayMon && fra.dayTue &&
-				fra.dayWed && fra.dayThu && fra.dayFri && fra.daySat &&
+				fra.daySun is not null && fra.dayMon is not null && fra.dayTue is not null &&
+				fra.dayWed is not null && fra.dayThu is not null && fra.dayFri is not null && fra.daySat is not null &&
+				fra.active && fra.daySun.Value && fra.dayMon.Value && fra.dayTue.Value &&
+				fra.dayWed.Value && fra.dayThu.Value && fra.dayFri.Value && fra.daySat.Value &&
 				fra.startTime == "00:00:00" && fra.endTime == "00:00:00";
 
 			string? posId = fra.subcenter?.composePosition ?? fra.atcPosition?.composePosition;
