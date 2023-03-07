@@ -27,7 +27,7 @@ public class IvaoLoginService
 		var db = await _dbContextFactory.CreateDbContextAsync();
 		if (await db.Users.FindAsync(json.Vid) is User u)
 		{
-			u.FirstName = json.FirstName;
+			u.FirstName ??= json.FirstName;
 			u.LastName = json.LastName;
 			u.RatingAtc = (AtcRating)json.RatingAtc;
 			u.RatingPilot = (PilotRating)json.RatingPilot;

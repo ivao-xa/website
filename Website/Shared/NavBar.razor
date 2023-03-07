@@ -7,56 +7,52 @@
 	<div class="container">
 		<div class="d-flex align-items-center justify-content-between w-100">
 			<a class="navbar-brand" href="/"><img src="img/logo_white.svg" title="IVAO XA logo" style="height: 2.5ex;" class="m-1" /></a>
-			<div class="d-flex nav flex-md-row flex-column">
-				<NavLink class="nav-link" Match="NavLinkMatch.All" href="/">Home</NavLink>
-				<NavLink class="nav-link" href="/about">About</NavLink>
-				<NavLink class="nav-link" href="/atc">ATC</NavLink>
-				<Authenticated>
-					<Staff><NavLink class="nav-link" href="/pilot">Pilot</NavLink></Staff>
-				</Authenticated>
-				<Authenticated RequiredRoles="DiscordRoles.Training">
-					<Staff>
-						<div class="nav-item dropdown">
-							<a href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" class="nav-link dropdown-toggle">Training</a>
-							<ul class="dropdown-menu dropdown-menu-dark">
-								<li><NavLink class="nav-link dropdown-item" href="/training/staff">Trainings</NavLink></li>
-								@if (_currentTrainee)
-								{
-									<li><NavLink class="nav-link dropdown-item" href="/training/student">Academy</NavLink></li>
-								}
-								else
-								{
-									<li><NavLink class="nav-link dropdown-item" href="/training/edit">Academy</NavLink></li>
-								}
-							</ul>
-						</div>
-					</Staff>
-					<Unauthorized>
-						@if (_currentTrainee)
-						{
-							<NavLink class="nav-link" href="/training/student">Academy</NavLink>
-						}
-					</Unauthorized>
-				</Authenticated>
-				<NavLink class="nav-link" href="/community">Community</NavLink>
-			</div>
 			<Authenticated>
-				<ChildContent>
-					<div>
-						<span class="text-muted">@(_currentGreeting), <a href="https://ivao.aero/Member.aspx?ID=@context.Vid" target="_blank">@context.FirstName</a>!</span>
-						@{
-							_currentUser = context;
-						}
-						@if (_currentController is not null)
-						{
-							<button type="button" class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#controllerProcedureModal">@(_currentController.Value.Callsign)</button>
-						}
-					</div>
-				</ChildContent>
-
-				<Loading>
-					<span class="text-muted">Authenticating&hellip;</span>
-				</Loading>
+				<div class="d-flex nav flex-md-row flex-column">
+					<NavLink class="nav-link" Match="NavLinkMatch.All" href="/">Home</NavLink>
+					<NavLink class="nav-link" href="/about">About</NavLink>
+					<NavLink class="nav-link" href="/atc">ATC</NavLink>
+					<Authenticated Context="_">
+						<Staff><NavLink class="nav-link" href="/pilot">Pilot</NavLink></Staff>
+					</Authenticated>
+					<Authenticated RequiredRoles="DiscordRoles.Training" Context="_">
+						<Staff>
+							<div class="nav-item dropdown">
+								<a href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" class="nav-link dropdown-toggle">Training</a>
+								<ul class="dropdown-menu dropdown-menu-dark">
+									<li><NavLink class="nav-link dropdown-item" href="/training/staff">Trainings</NavLink></li>
+									@if (_currentTrainee)
+									{
+										<li><NavLink class="nav-link dropdown-item" href="/training/student">Academy</NavLink></li>
+									}
+									else
+									{
+										<li><NavLink class="nav-link dropdown-item" href="/training/edit">Academy</NavLink></li>
+									}
+								</ul>
+							</div>
+						</Staff>
+						<Unauthorized>
+							@if (_currentTrainee)
+							{
+								<NavLink class="nav-link" href="/training/student">Academy</NavLink>
+							}
+						</Unauthorized>
+					</Authenticated>
+					<Authenticated RequiredRoles="DiscordRoles.Administrator" Context="_">
+						<NavLink class="nav-link" href="/discord">Discord</NavLink>
+					</Authenticated>
+				</div>
+				<div>
+					<span class="text-muted">@(_currentGreeting), <a href="https://ivao.aero/Member.aspx?ID=@context.Vid" target="_blank">@context.FirstName</a>!</span>
+					@{
+						_currentUser = context;
+					}
+					@if (_currentController is not null)
+					{
+						<button type="button" class="btn btn-primary btn-sm ms-2" data-bs-toggle="modal" data-bs-target="#controllerProcedureModal">@(_currentController.Value.Callsign)</button>
+					}
+				</div>
 			</Authenticated>
 		</div>
 	</div>

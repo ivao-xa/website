@@ -77,26 +77,25 @@ else if (Loading is not null)
         await LoginSrv.RegisterUserAsync(token);
         authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
 
-        if (authenticatedUser is not null)
-            await CheckDiscordRoles(authenticatedUser);
+        if (authenticatedUser is not null && !(await CheckDiscordRoles(authenticatedUser)) && !url.GetLeftPart(UriPartial.Path).Split('/').Contains("register"))
+            NavManager.NavigateTo("https://discord.gg/RCYbNx6dbe", true);
+        else
+            NavManager.NavigateTo(url.GetLeftPart(UriPartial.Path));
 
-        NavManager.NavigateTo(url.GetLeftPart(UriPartial.Path));
         await InvokeAsync(StateHasChanged);
     }
 
     /// <summary>Updates and enforces a user's discord roles, obtaining the snowflake if one is not already known.</summary>
-    private async Task CheckDiscordRoles(User authenticatedUser)
+    private async Task<bool> CheckDiscordRoles(User authenticatedUser)
     {
         var db = WebContextFactory.CreateDbContext();
         var user = await db.Users.FindAsync(authenticatedUser.Vid);
 
-        if (user is null)
-            return;
-
-        if (user.Snowflake is null)
-            user.Snowflake = await Discord.RequestSnowflakeAsync("bot-log", user);
+        if (user is null || user.Snowflake is null)
+            return false;
 
         user.Roles = await Discord.EnforceRolesAsync(user, Api);
         await db.SaveChangesAsync();
+        return true;
     }
 }
