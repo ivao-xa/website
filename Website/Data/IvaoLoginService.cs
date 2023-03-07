@@ -33,7 +33,7 @@ public class IvaoLoginService
 			u.RatingPilot = (PilotRating)json.RatingPilot;
 			u.Division = json.Division;
 			u.Country = json.Country;
-			u.Staff = string.Join(':', json.Staff.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
+			u.Staff = json.Staff is null ? null : string.Join(':', json.Staff.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
 			await _session.SetAsync("User", u);
 		}
@@ -48,7 +48,7 @@ public class IvaoLoginService
 				RatingPilot = (PilotRating)json.RatingPilot,
 				Division = json.Division,
 				Country = json.Country,
-				Staff = string.Join(':', json.Staff.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)),
+				Staff = json.Staff is null ? null : string.Join(':', json.Staff.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)),
 				FaaChecked = json.Country != "CA",
 				NavCanChecked = json.Country == "CA"
 			};
@@ -69,6 +69,10 @@ public class IvaoLoginService
 		catch (CryptographicException)
 		{
 			await _session.DeleteAsync("User");
+			return null;
+		}
+		catch (TaskCanceledException)
+		{
 			return null;
 		}
 	}

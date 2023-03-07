@@ -239,7 +239,7 @@ public class DiscordService
 					  ? hqPositions
 						.Concat(
 							divPositions[1..]
-							.Select(p => p[(p.IndexOf('-') + 1)..])
+							.Select(p => p.IndexOf('-') == 2 ? p[3..] : p)
 							.Prepend(divPositions[0])
 						)
 					  : hqPositions

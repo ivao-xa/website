@@ -12,11 +12,13 @@
 			}
 			else
 			{
-				@foreach (string staffPos in user.Staff.Split(':'))
+				string[] staffPoses = staffPos(user.Staff.Split(':')).ToArray();
+				@for (int posIdx = 0; posIdx < staffPoses.Length; ++posIdx)
 				{
+					var staffPos = staffPoses[posIdx];
 					bool localStaff = staffPos.StartsWith("XA-") || (staffPos.Contains('-') && "KC".Contains(staffPos[0]));
 
-					<a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m@(user.Staff.StartsWith(staffPos) ? "e" : user.Staff.EndsWith(staffPos) ? "b" : "x")-1 text-decoration-none" target="_blank">@staffPos</a>
+					<a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m@(posIdx == 0 ? "e" : posIdx == staffPoses.Length - 1 ? "b" : "x")-1 text-decoration-none" target="_blank">@staffPos</a>
 				}
 			}
 		</th>
@@ -115,6 +117,15 @@
 	{
 		base.OnParametersSet();
 		StateHasChanged();
+	}
+
+	static IEnumerable<string> staffPos(string[] positions)
+	{
+		var hqPositions = positions.Where(p => !p.Contains('-'));
+		var divMainPositions = positions.Where(p => p.IndexOf('-') == 2 && !p.Any(char.IsDigit));
+		var assistantPositions = positions.Where(p => p.Contains('-') && (p.IndexOf('-') != 2 || p.Any(char.IsDigit)));
+
+		return hqPositions.Concat(divMainPositions).Concat(assistantPositions);
 	}
 
 	private string GetButtonClasses(User user, AtcRating trainingRating, AtcRating completeRating, bool canada)
