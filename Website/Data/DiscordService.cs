@@ -587,9 +587,9 @@ public class DiscordService
 			connect: PermValue.Allow, speak: PermValue.Allow
 		);
 		OverwritePermissions adminAdditions = new(
-			manageChannel: PermValue.Allow, manageMessages: PermValue.Allow,
-			muteMembers: PermValue.Allow, deafenMembers: PermValue.Allow,
-			moveMembers: PermValue.Allow, prioritySpeaker: PermValue.Allow
+			manageMessages: PermValue.Allow, moveMembers: PermValue.Allow,
+            muteMembers: PermValue.Allow, deafenMembers: PermValue.Allow,
+			prioritySpeaker: PermValue.Allow
 		);
 
 		OverwritePermissions adminPerms = new((1 << 3) | adminAdditions.AllowValue | writePerms.AllowValue, 0);

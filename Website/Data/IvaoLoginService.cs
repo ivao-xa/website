@@ -52,6 +52,7 @@ public class IvaoLoginService
 				FaaChecked = json.Country != "CA",
 				NavCanChecked = json.Country == "CA"
 			};
+
 			await db.Users.AddAsync(user);
 		}
 
@@ -63,7 +64,6 @@ public class IvaoLoginService
 		try
 		{
 			ProtectedBrowserStorageResult<User> result = await _session.GetAsync<User>("User");
-
 			return result.Success ? result.Value! : null;
 		}
 		catch (CryptographicException)
