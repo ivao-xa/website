@@ -1,15 +1,24 @@
-﻿<div class="col-lg-@(12 / Parent.Columns.Count)">
-    <div class="mx-auto h-100">
+﻿<div class="col-lg-@(12 * ColSpan / Parent?.Columns.Sum(c => c.ColSpan))">
+    <div class="mx-auto h-100 @Class" style="@Style">
         @ChildContent
     </div>
 </div>
 
 @code {
     [CascadingParameter]
-    private FullwidthContainer Parent { get; set; }
+    private FullwidthContainer? Parent { get; set; } = default;
 
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public int ColSpan { get; set; } = 1;
+
+    [Parameter]
+    public string Class { get; set; } = "";
+
+    [Parameter]
+    public string Style { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; } = default;
 
     protected override void OnInitialized()
     {

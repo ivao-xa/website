@@ -3,6 +3,8 @@
 @using Website.Data
 @inject IDbContextFactory<WebsiteContext> ContextFactory
 @inject NavigationManager NavManager
+@inject DiscordService Discord
+@inject IvaoApiService IvaoApi
 
 <Authenticated>
     <ChildContent>
@@ -50,5 +52,10 @@
         user.Snowflake = snowflake;
         await context.SaveChangesAsync();
         StateHasChanged();
+        _ = Task.Run(async () =>
+        {
+            await Discord.EnforceRolesAsync(user, IvaoApi);
+            await Discord.SendMessageAsync(user, $"Thanks for registering, {user.FirstName}! You should now have your roles.");
+        });
     }
 }

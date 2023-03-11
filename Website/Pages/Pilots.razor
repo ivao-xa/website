@@ -20,7 +20,23 @@
                     @foreach (User user in _users ?? Array.Empty<User>())
                     {
                         <tr class="align-middle @(user.LastPilotTime < DateTime.UtcNow - TimeSpan.FromDays(30) ? "table-secondary" : string.Empty)">
-                            <th scope="row"><a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;">@user.Vid</a></th>
+                            <th scope="row">
+                                @if (string.IsNullOrEmpty(user.Staff))
+                                {
+                                    <a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;" target="_blank">@user.Vid</a>
+                                }
+                                else
+                                {
+                                    string[] staffPoses = staffPos(user.Staff.Split(':')).ToArray();
+                                    @for (int posIdx = 0; posIdx < staffPoses.Length; ++posIdx)
+                                    {
+                                        var staffPos = staffPoses[posIdx];
+                                        bool localStaff = staffPos.Contains('-') && ("KC".Contains(staffPos[0]) || new[] { "XA", "PH", "PA", "TJ" }.Contains(staffPos[0..2]));
+
+                                        <a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m@(posIdx == 0 ? "e" : posIdx == staffPoses.Length - 1 ? "b" : "x")-1 text-decoration-none" target="_blank">@staffPos</a>
+                                    }
+                                }
+                            </th>
                             <td>@user.FirstName @user.LastName</td>
                             <td><img src="https://status.ivao.aero/R/@(user.Vid).png" title="@user.Vid" /></td>
                             <td><img src="https://ivao.aero/data/images/ratings/pilot/@((int)user.RatingPilot!.Value).gif" title="@user.RatingPilot" /></td>
@@ -44,5 +60,14 @@
         var allUsers = (await ContextFactory.CreateDbContextAsync()).Users.AsNoTracking().ToArray();
         _users = allUsers.Where(u => u.RatingPilot is not null).OrderByDescending(u => u.LastPilotTime).ToArray();
         StateHasChanged();
+    }
+
+    static IEnumerable<string> staffPos(string[] positions)
+    {
+        var hqPositions = positions.Where(p => !p.Contains('-'));
+        var divMainPositions = positions.Where(p => p.IndexOf('-') == 2 && !p.Any(char.IsDigit));
+        var assistantPositions = positions.Where(p => p.Contains('-') && (p.IndexOf('-') != 2 || p.Any(char.IsDigit)));
+
+        return hqPositions.Concat(divMainPositions).Concat(assistantPositions);
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Website.Data;
 
@@ -10,13 +11,14 @@ using Website.Data;
 namespace Website.Migrations
 {
     [DbContext(typeof(WebsiteContext))]
-    partial class WebsiteContextModelSnapshot : ModelSnapshot
+    [Migration("20220927041100_Training requests")]
+    partial class Trainingrequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "6.0.7")
+                .HasAnnotation("ProductVersion", "6.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("Website.Data.DeviationReport", b =>
@@ -33,7 +35,7 @@ namespace Website.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("FilingTime")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime");
 
                     b.Property<int>("Reportee")
                         .HasColumnType("int");
@@ -84,7 +86,7 @@ namespace Website.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("End")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -99,7 +101,7 @@ namespace Website.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("Start")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime");
 
                     b.HasKey("Id");
 
@@ -123,7 +125,7 @@ namespace Website.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("Start")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime");
 
                     b.Property<int>("Trainee")
                         .HasColumnType("int");
@@ -142,19 +144,16 @@ namespace Website.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int?>("AtcRating")
-                        .HasColumnType("int");
-
                     b.Property<string>("Comments")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("PilotRating")
-                        .HasColumnType("int");
-
                     b.Property<string>("Position")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
 
                     b.Property<int>("Trainee")
                         .HasColumnType("int");
@@ -186,13 +185,13 @@ namespace Website.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("LastControlTime")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastName")
                         .HasColumnType("longtext");
 
                     b.Property<DateTime>("LastPilotTime")
-                        .HasColumnType("datetime(6)");
+                        .HasColumnType("datetime");
 
                     b.Property<bool>("NavCanChecked")
                         .HasColumnType("tinyint(1)");

@@ -12,10 +12,10 @@
     <ContainerColumn>
         <div class="rounded bg-secondary bg-gradient p-4 h-100">
             <div class="d-flex flex-wrap justify-content-evenly align-items-center h-100">
-                @foreach (var ctrlr in XAControllers?.Any() ?? false ? XAControllers : _controllers ?? Array.Empty<ATC>())
+                @foreach (var ctrlr in DisplayedControllers)
                 {
-                    <a href="https://ivao.aero/member?ID=@(ctrlr.UserId)" class="m-1">
-                        <img src="https://status.ivao.aero/@(ctrlr.UserId).png?time=@(DateTime.UtcNow.Ticks)" title="@string.Join(Environment.NewLine, ctrlr.Atis?.Lines ?? Array.Empty<string>())" />
+                    <a href="https://ivao.aero/Member.aspx?ID=@(ctrlr.UserId)" class="m-1" style="max-width: @(DisplayedControllers.Count() > 2 ? DisplayedControllers.Count() > 30 ? "23%" : "30%" : "auto");">
+                        <img src="https://status.ivao.aero/@(DisplayedControllers.Count() > 30 ? "R/" + ctrlr.UserId : ctrlr.UserId).png?time=@(DateTime.UtcNow.Ticks)" title="@string.Join(Environment.NewLine, ctrlr.Atis?.Lines ?? Array.Empty<string>())" style="max-width: 100%;" />
                     </a>
                 }
             </div>
@@ -26,6 +26,7 @@
 @code {
     IEnumerable<ATC>? _controllers = null;
     IEnumerable<ATC>? XAControllers => _controllers?.Where(c => WhazzupService.IsXAPosition(c.Callsign));
+    IEnumerable<ATC> DisplayedControllers => XAControllers?.Any() ?? false ? XAControllers : _controllers ?? Array.Empty<ATC>();
 
     protected override void OnAfterRender(bool firstRender)
     {

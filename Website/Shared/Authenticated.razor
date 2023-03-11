@@ -13,6 +13,7 @@
     {
         @if (Staff is not null && !string.IsNullOrEmpty(authenticatedUser.Staff))
         {
+            // User is staff and a special <Staff></Staff> block has been provided. Run it.
             @Staff(authenticatedUser)
         }
         else if (ChildContent is not null)
@@ -22,11 +23,13 @@
     }
     else if (Unauthorized is not null)
     {
+        // User does not have the permissions flagged in the @RequiredRoles attribute; run the <Unauthorized></Unauthorized> block.
         @Unauthorized(authenticatedUser)
     }
 }
 else if (Loading is not null)
 {
+    // Waiting for user to get token from IVAO server; run the <Loading></Loading> block.
     @Loading
 }
 
@@ -51,45 +54,48 @@ else if (Loading is not null)
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender)
+        // Only check these things once so we don't get infinite redirects.
+        if (authenticatedUser is not null)
             return;
 
         Uri url = new(NavManager.Uri);
         if (!url.Query.Contains("token="))
         {
+            // No token present. Check to see if we're already logged in or hand them off to HQ for authentication.
             authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
 
             if (authenticatedUser is null)
-                NavManager.NavigateTo($"https://login.ivao.aero/index.php?url=https%3A%2F%2Fxa.ivao.aero%2Flogin_redirect.php%3Fredir_to%3D{Uri.EscapeDataString(Uri.EscapeDataString(NavManager.Uri))}");
+                NavManager.NavigateTo($"https://login.ivao.aero/index.php?url=https%3A%2F%2Fxa.ivao.aero%2Flogin_redirect.php%3Fredir_to%3D{Uri.EscapeDataString(Uri.EscapeDataString(NavManager.Uri))}", true);
 
             await InvokeAsync(StateHasChanged);
             return;
         }
 
+        // Token present. Register the user, update roles, and clean up the URL in the browser.
         string token = url.Query.Split("token=")[1];
 
         await LoginSrv.RegisterUserAsync(token);
         authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
 
-        if (authenticatedUser is not null)
-            await CheckDiscordRoles(authenticatedUser);
+        if (authenticatedUser is not null && !(await CheckDiscordRoles(authenticatedUser)) && !url.GetLeftPart(UriPartial.Path).Split('/').Contains("register"))
+            NavManager.NavigateTo("https://discord.gg/RCYbNx6dbe", true);
+        else
+            NavManager.NavigateTo(url.GetLeftPart(UriPartial.Path));
 
-        NavManager.NavigateTo(url.GetLeftPart(UriPartial.Path));
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task CheckDiscordRoles(User authenticatedUser)
+    /// <summary>Updates and enforces a user's discord roles, obtaining the snowflake if one is not already known.</summary>
+    private async Task<bool> CheckDiscordRoles(User authenticatedUser)
     {
         var db = WebContextFactory.CreateDbContext();
         var user = await db.Users.FindAsync(authenticatedUser.Vid);
 
-        if (user is null)
-            return;
+        if (user is null || user.Snowflake is null)
+            return false;
 
-        if (user.Snowflake is null)
-            user.Snowflake = await Discord.RequestSnowflakeAsync("bot-log", user);
-
-        await Discord.EnforceRolesAsync(user, Api);
+        user.Roles = await Discord.EnforceRolesAsync(user, Api);
         await db.SaveChangesAsync();
+        return true;
     }
 }

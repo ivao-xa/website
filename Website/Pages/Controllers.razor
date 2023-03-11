@@ -7,133 +7,133 @@
 @inject IDbContextFactory<WebsiteContext> ContextFactory
 
 <div class="container-fluid mt-3">
-    <h2 class="text-center">ATC Roster</h2>
-    <table class="table">
-        <thead>
-            <tr>
-                <th scope="col">VID</th>
-                <Authenticated>
-                    <th scope="col">Name</th>
-                </Authenticated>
-                <th scope="col">Status</th>
-                <th scope="col">Rating</th>
-                <th scope="col">FAA</th>
-                <th scope="col">NavCan</th>
-                <th scope="col">Endorsements</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (User user in _users ?? Array.Empty<User>())
-            {
-                <tr class="align-middle @(user.LastControlTime < DateTime.UtcNow - TimeSpan.FromDays(30) ? "table-secondary" : string.Empty)">
-                    <th scope="row"><a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;">@user.Vid</a></th>
-                    <Authenticated>
-                        <td>@user.FirstName @user.LastName</td>
-                    </Authenticated>
-                    <td><img src="https://status.ivao.aero/R/@(user.Vid).png" title="@user.Vid" /></td>
-                    <td><img src="https://ivao.aero/data/images/ratings/atc/@((int)user.RatingAtc!.Value).gif" title="@user.RatingAtc" /></td>
-                    <td>
-                        <div class="d-flex flex-row">
-                            <Authenticated RequiredRoles="DiscordRoles.Training">
-                                <button type="button" class="btn btn-@(user.FaaChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, false)">FAA</button>
-                            </Authenticated>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, false)">DEL/GND</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, false)">TWR</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, false)">APP/DEP</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, false)">CTR</button>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="d-flex flex-row">
-                            <Authenticated RequiredRoles="DiscordRoles.Training">
-                                <button type="button" class="btn btn-@(user.NavCanChecked ? "success" : "danger") btn-sm m-1 col" @onclick="() => CheckoutAsync(user, true)">NavCan</button>
-                            </Authenticated>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS1, AtcRating.AS3, true)">DEL/GND</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.AS2, AtcRating.ADC, true)">TWR</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.ADC, AtcRating.APC, true)">APP/DEP</button>
-                            <button type="button" class="@GetButtonClasses(user, AtcRating.APC, AtcRating.ACC, true)">CTR</button>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="d-flex flex-row">
-                            @if (_fras.TryGetValue(user.Vid, out var endorsements))
-                            {
-                                @foreach (var endorsement in endorsements)
-                                {
-                                    <span class="badge rounded-pill bg-@(endorsement.Value ? "dark" : "primary") m-1">@endorsement.Key</span>
-                                }
-                            }
-                        </div>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+	<h2 class="text-center">ATC Roster</h2>
+	<table class="table">
+		<thead>
+			<tr>
+				<th scope="col">VID</th>
+				<Authenticated>
+					<th scope="col">Name</th>
+				</Authenticated>
+				<th scope="col">Status</th>
+				<th scope="col" class="text-center">Rating</th>
+				<th scope="col">FAA</th>
+				<th scope="col">NavCan</th>
+				<th scope="col">Endorsements</th>
+			</tr>
+		</thead>
+		<tbody>
+			<Authenticated>
+				<ChildContent>
+					@foreach (User user in (string.IsNullOrWhiteSpace(context.Staff) ? _users?.Where(u => u.LastControlTime >= minControlTime) : _users) ?? Array.Empty<User>())
+					{
+						<ControllerRosterRow user="user" AuthenticationContext="context" Fras="_fras" CheckoutChanged="(_, _) => _ = UpdateUsersAsync()" />
+					}
+				</ChildContent>
+				<Loading>
+					@foreach (User user in _users?.Where(u => u.LastControlTime >= minControlTime) ?? Array.Empty<User>())
+					{
+						<ControllerRosterRow user="user" AuthenticationContext="null" Fras="_fras" />
+					}
+				</Loading>
+			</Authenticated>
+		</tbody>
+	</table>
 </div>
 
 @code {
-    private User[]? _users = null;
-    private Dictionary<int, Dictionary<string, bool>> _fras = new();
+	private User[]? _users = null;
+	private DateTime minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (_users is not null)
-            return;
+	private static SemaphoreSlim _updateFras = new(1);
+	private static Dictionary<int, Dictionary<string, (string Link, bool Perpetual, bool Redundant)>>? _fras = null;
+	private static DateTime _frasUpdated = DateTime.MinValue;
 
-        foreach (Fra fra in await Api.GetFrasAsync(vidBased: true, ratingBased: false) ?? new())
-        {
-            if (fra.userId is null)
-                continue;
+	protected override async Task OnAfterRenderAsync(bool firstLoad)
+	{
+		if (!firstLoad)
+			return;
 
-            int vid = fra.userId.Value;
+		if (_users is null)
+			await UpdateUsersAsync();
 
-            if (!_fras.ContainsKey(vid))
-                _fras.Add(vid, new());
+		_ = Task.Run(async () => { while (true) { await Task.Delay(TimeSpan.FromSeconds(10)); await UpdateUsersAsync(); await UpdateFrasAsync(); } });
+		StateHasChanged();
+	}
 
-            bool isPerpetual =
-                fra.active && fra.daySun && fra.dayMon && fra.dayTue &&
-                fra.dayWed && fra.dayThu && fra.dayFri && fra.daySat &&
-                fra.startTime == "00:00:00" && fra.endTime == "00:00:00";
+	private async Task UpdateFrasAsync()
+	{
+		await _updateFras.WaitAsync();
 
-            string formatPosition =
-                fra.atcPosition is not null
-                ? $"{fra.atcPosition.airportId} {fra.atcPosition.position}"
-                : $"{fra.subcenter!.centerId[1..]} {fra.subcenter.position}";
+		if (_fras is not null && DateTime.UtcNow - _frasUpdated < TimeSpan.FromMinutes(5))
+		{
+			_updateFras.Release();
+			return;
+		}
 
-            _fras[vid].TryAdd(formatPosition, isPerpetual);
-        }
+		_fras?.Clear();
+		_fras ??= new();
 
-        UpdateUsers(await ContextFactory.CreateDbContextAsync());
-    }
+		Dictionary<string, HashSet<Fra>> ratingFras =
+			new(
+				(await Api.GetFrasAsync(vidBased: false, ratingBased: true) ?? Array.Empty<Fra>())
+				.GroupBy(f => f.subcenter?.composePosition ?? f.atcPosition?.composePosition ?? "")
+				.Select(g => new KeyValuePair<string, HashSet<Fra>>(g.Key, g.ToHashSet()))
+			);
 
-    private void UpdateUsers(WebsiteContext context)
-    {
-        var minControlTime = DateTime.UtcNow - TimeSpan.FromDays(90);
-        var allUsers = context.Users.AsNoTracking().ToArray();
-        _users = allUsers.Where(u => u.RatingAtc is not null).OrderByDescending(u => u.LastControlTime).ToArray();
-        StateHasChanged();
-    }
+		Dictionary<int, AtcRating?> ratings = new(_users?.Select(u => new KeyValuePair<int, AtcRating?>(u.Vid, u.RatingAtc)) ?? Array.Empty<KeyValuePair<int, AtcRating?>>());
 
-    private string GetButtonClasses(User user, AtcRating trainingRating, AtcRating completeRating, bool canada) =>
-        ((!canada && !user.FaaChecked) || (canada && !user.NavCanChecked) || (user.RatingAtc < trainingRating))
-        ? "btn btn-outline-secondary btn-sm m-1 col"
-        : user.RatingAtc >= completeRating
-          ? "btn btn-success btn-sm m-1 col"
-          : "btn btn-info btn-sm m-1 col";
+		foreach (Fra fra in await Api.GetFrasAsync(vidBased: true, ratingBased: false) ?? Array.Empty<Fra>())
+		{
+			if (fra.userId is null)
+				continue;
 
-    private async Task CheckoutAsync(User? user, bool canada)
-    {
-        var context = await ContextFactory.CreateDbContextAsync();
-        user = await context.Users.FindAsync(user?.Vid ?? 0);
-        if (user is null)
-            return;
+			int vid = fra.userId.Value;
 
-        if (canada)
-            user.NavCanChecked = !user.NavCanChecked;
-        else
-            user.FaaChecked = !user.FaaChecked;
+			if (!_fras.ContainsKey(vid))
+				_fras.Add(vid, new());
 
-        await context.SaveChangesAsync();
-        UpdateUsers(context);
-    }
+			bool isPerpetual =
+				fra.daySun is not null && fra.dayMon is not null && fra.dayTue is not null &&
+				fra.dayWed is not null && fra.dayThu is not null && fra.dayFri is not null && fra.daySat is not null &&
+				fra.active && fra.daySun.Value && fra.dayMon.Value && fra.dayTue.Value &&
+				fra.dayWed.Value && fra.dayThu.Value && fra.dayFri.Value && fra.daySat.Value &&
+				fra.startTime == "00:00:00" && fra.endTime == "00:00:00";
+
+			string? posId = fra.subcenter?.composePosition ?? fra.atcPosition?.composePosition;
+			bool isRedundant =
+				posId is not null &&
+				ratings.TryGetValue(vid, out AtcRating? atcRating) &&
+				atcRating is not null &&
+				ratingFras.TryGetValue(posId, out var fras) &&
+				fras.Any(f => f.active && f.minAtc is not null && f.minAtc.Value <= (int)atcRating);
+
+			string formatPositionId =
+			fra.atcPosition is null
+			? fra.subcenter!.centerId switch
+			{
+				"PAZA" => "ZAN",
+				"PHZH" => "ZHN",
+				_ => fra.subcenter!.centerId[1..]
+			}
+			: fra.atcPosition.airportId;
+
+			string formatPosition = $"{formatPositionId} {(fra.atcPosition is null ? fra.subcenter!.position : fra.atcPosition.position)}";
+
+			string link = $"https://data.ivao.aero/{(fra.atcPosition is null ? "centers" : "airports")}/info/{fra.atcPosition?.airportId ?? fra.subcenter?.centerId ?? ""}";
+
+			_fras[vid].TryAdd(formatPosition, (link, isPerpetual, isRedundant));
+		}
+
+		_frasUpdated = DateTime.UtcNow;
+		_updateFras.Release();
+		await InvokeAsync(StateHasChanged);
+		return;
+	}
+
+	private async Task UpdateUsersAsync()
+	{
+		var allUsers = (await ContextFactory.CreateDbContextAsync()).Users.AsNoTracking().ToArray();
+		_users = allUsers.OrderByDescending(u => u.LastControlTime).ToArray();
+	}
 }

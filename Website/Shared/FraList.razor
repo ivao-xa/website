@@ -49,7 +49,7 @@
         if (!firstRender)
             return;
 
-        _remainingFras = await Api.GetFrasAsync();
+        _remainingFras = (await Api.GetFrasAsync())?.ToHashSet();
 
         await InvokeAsync(StateHasChanged);
     }
