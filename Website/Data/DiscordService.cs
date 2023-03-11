@@ -396,18 +396,25 @@ public class DiscordService
 			SocketSlashCommandDataOption getOption(string option) =>
 				command.Data.Options.Where(c => c.Name == option).Single();
 
+#if DEBUG
+			if (!command.Data.Name.StartsWith("debug-"))
+				return;
+
+			switch (command.Data.Name["debug-".Length..])
+#else
 			switch (command.Data.Name)
+#endif
 			{
 				case "train-atc":
 				case "train-pilot":
 					bool pilot = command.Data.Name == "train-pilot";
 
-					var context = await _webContextFactory.CreateDbContextAsync();
+					var trainContext = await _webContextFactory.CreateDbContextAsync();
 					var trainerUser = (SocketGuildUser)command.User;
 					var traineeUser = (SocketGuildUser)getOption("trainee").Value;
 
-					var trainer = await context.Users.SingleOrDefaultAsync(u => u.Snowflake == trainerUser.Id);
-					var trainee = await context.Users.SingleOrDefaultAsync(u => u.Snowflake == traineeUser.Id);
+					var trainer = await trainContext.Users.SingleOrDefaultAsync(u => u.Snowflake == trainerUser.Id);
+					var trainee = await trainContext.Users.SingleOrDefaultAsync(u => u.Snowflake == traineeUser.Id);
 
 					if (trainer is null)
 					{
@@ -431,7 +438,7 @@ public class DiscordService
 					{
 						var trainingRating = (trainee.RatingPilot ?? PilotRating.FS1) + 1;
 
-						context.TrainingRequests.Add(new() {
+						trainContext.TrainingRequests.Add(new() {
 							Trainer = trainer.Vid,
 							Trainee = trainee.Vid,
 							PilotRating = trainingRating,
@@ -444,7 +451,7 @@ public class DiscordService
 					{
 						var trainingRating = (trainee.RatingAtc ?? AtcRating.AS1) + 1;
 
-						context.TrainingRequests.Add(new() {
+						trainContext.TrainingRequests.Add(new() {
 							Trainer = trainer.Vid,
 							Trainee = trainee.Vid,
 							AtcRating = trainingRating,
@@ -454,8 +461,60 @@ public class DiscordService
 						await command.ModifyOriginalResponseAsync(r => r.Content = $"Created an {trainingRating} training for {traineeUser.Mention} (VID: {trainee.Vid})");
 					}
 
-					await context.SaveChangesAsync();
-					await UpdateTrainingChannelsAsync(context);
+					await trainContext.SaveChangesAsync();
+					await UpdateTrainingChannelsAsync(trainContext);
+					break;
+
+				case "exam":
+					var context = await _webContextFactory.CreateDbContextAsync();
+					var examTrainer = context.Users.FirstOrDefault(u => u.Snowflake == ((SocketGuildUser)command.User).Id);
+
+					if (examTrainer is null)
+					{
+						await command.ModifyOriginalResponseAsync(r => r.Content = "Who are you and how did you get in my channel?");
+						break;
+					}
+					else if (!examTrainer.Roles.HasFlag(DiscordRoles.Training))
+					{
+						await command.ModifyOriginalResponseAsync(r => r.Content = "Ask the designated trainer to do this for you.");
+						break;
+					}
+
+					string traineeVidStr = new(command.Channel.Name.TakeWhile(char.IsDigit).ToArray());
+					if (traineeVidStr.Length != 6 || !int.TryParse(traineeVidStr, out int traineeVid))
+					{
+						await command.ModifyOriginalResponseAsync(r => r.Content = "This isn't a training channel!");
+						break;
+					}
+
+					var assignedTrainings = context.TrainingRequests.Where(tr => tr.Trainer == examTrainer.Vid).AsNoTracking().ToArray();
+					if (assignedTrainings.FirstOrDefault(tr => tr.Trainee == traineeVid) is not TrainingRequest req)
+					{
+						await command.ModifyOriginalResponseAsync(r => r.Content = "You are not the assigned trainer for this channel.");
+						break;
+					}
+					else if (req.AtcRating is null)
+					{
+						await command.ModifyOriginalResponseAsync(r => r.Content = "Only ATC exams can be scheduled through the bot. Please use this channel for coordinating pilot exams.");
+						break;
+					}
+
+					if (!DateTime.TryParse((string)getOption("start").Value, out DateTime startTime))
+					{
+						await command.ModifyOriginalResponseAsync(r => r.Content = $"I couldn't figure out when you wanted the exam to start, sorry! Try using this format: {DateTime.UtcNow}");
+						break;
+					}
+
+					await context.Exams.AddAsync(new() {
+						Rating = req.AtcRating.Value,
+						Trainer = req.Trainer!.Value,
+						Trainee = req.Trainee,
+						Mock = false,
+						Start = startTime,
+						Position = (string)getOption("position").Value
+					});
+
+					await command.ModifyOriginalResponseAsync(r => r.Content = "Done! It's been scheduled.");
 					break;
 
 				default:
@@ -467,6 +526,7 @@ public class DiscordService
 		{
 			await EnforceDiscordConfigAsync();
 			var ivao = _client.Guilds.Single();
+			await ivao.DeleteApplicationCommandsAsync();
 
 			// Running online controllers view
 			if (FindCategoryByName("ONLINE") is SocketCategoryChannel onlineCategory)
@@ -502,7 +562,9 @@ public class DiscordService
 						) ?? Task.CompletedTask
 					);
 
-					await UpdateTrainingChannelsAsync(await _webContextFactory.CreateDbContextAsync());
+					var context = await _webContextFactory.CreateDbContextAsync();
+					await UpdateTrainingChannelsAsync(context);
+					await UpdateEventChannelsAsync(context);
 				}
 
 				Regex trainerExaminerCallsign = new(@"^[A-Z]{4}_[XT]_(TWR|APP|CTR)$", RegexOptions.ExplicitCapture | RegexOptions.Compiled);
@@ -556,17 +618,35 @@ public class DiscordService
 				});
 			}
 
-			await ivao.DeleteApplicationCommandsAsync();
 			await ivao.CreateApplicationCommandAsync(new SlashCommandBuilder()
+#if DEBUG
+				.WithName("debug-train-atc")
+#else
 				.WithName("train-atc")
+#endif
 				.WithDescription("Add a training with yourself as the trainer.")
 				.AddOption("trainee", ApplicationCommandOptionType.User, "The user requesting the training", true, isAutocomplete: true)
 				.Build());
 
 			await ivao.CreateApplicationCommandAsync(new SlashCommandBuilder()
+#if DEBUG
+				.WithName("debug-train-pilot")
+#else
 				.WithName("train-pilot")
+#endif
 				.WithDescription("Add a training with yourself as the trainer.")
 				.AddOption("trainee", ApplicationCommandOptionType.User, "The user requesting the training", true, isAutocomplete: true)
+				.Build());
+
+			await ivao.CreateApplicationCommandAsync(new SlashCommandBuilder()
+#if DEBUG
+				.WithName("debug-exam")
+#else
+				.WithName("exam")
+#endif
+				.WithDescription("Schedule an exam for this trainee.")
+				.AddOption("start", ApplicationCommandOptionType.String, "The start time of the exam", true)
+				.AddOption("position", ApplicationCommandOptionType.String, "The position on which the exam will take place", true)
 				.Build());
 
 			await RequestSnowflakeAsync();
@@ -588,7 +668,7 @@ public class DiscordService
 		);
 		OverwritePermissions adminAdditions = new(
 			manageMessages: PermValue.Allow, moveMembers: PermValue.Allow,
-            muteMembers: PermValue.Allow, deafenMembers: PermValue.Allow,
+			muteMembers: PermValue.Allow, deafenMembers: PermValue.Allow,
 			prioritySpeaker: PermValue.Allow
 		);
 
@@ -791,6 +871,66 @@ public class DiscordService
 				continue;
 
 			await ivao.CreateVoiceChannelAsync(channelName, tcp => { tcp.CategoryId = new(category.Id); tcp.PermissionOverwrites = new(GetOverwrites(ivao, new() { Write = new[] { trainee.Snowflake.Value.ToString(), trainer.Snowflake.Value.ToString() } })); });
+		}
+
+		var anHour = TimeSpan.FromHours(1);
+		foreach (var ex in context.Exams.AsNoTracking().ToArray().Where(ex => ex.Start - anHour < DateTime.UtcNow && DateTime.UtcNow < ex.End + anHour))
+		{
+			var trainee = await context.Users.FindAsync(ex.Trainee);
+			var trainer = await context.Users.FindAsync(ex.Trainer);
+
+			if (trainee is null || trainer is null || trainee.Snowflake is null || trainer.Snowflake is null)
+				continue;
+
+			string channelName = $"{trainee.FirstName}'s {ex.Name}";
+			if (knownChannels.Contains(channelName))
+			{
+				knownChannels.Remove(channelName);
+				continue;
+			}
+
+			List<string> viewingRoles = new() { "SEC+" };
+			for (AtcRating rat = AtcRating.ACC; rat >= ex.Rating; --rat)
+				viewingRoles.Add(rat.ToString());
+
+			await ivao.CreateVoiceChannelAsync(channelName, tcp => { tcp.CategoryId = new(category.Id); tcp.PermissionOverwrites = new(GetOverwrites(ivao, new() { Read = viewingRoles.ToArray(), Write = new[] { trainee.Snowflake.Value.ToString(), trainer.Snowflake.Value.ToString(), _roles[DiscordRoles.Training] } })); });
+		}
+
+		foreach (var deletedChannel in knownChannels)
+			await (FindVoiceChannelByName(deletedChannel)?.DeleteAsync() ?? Task.CompletedTask);
+	}
+
+	public async Task UpdateEventChannelsAsync(WebsiteContext context)
+	{
+		var category = FindCategoryByName("EVENTS");
+		var ivao = _client.Guilds.Single();
+
+		while (category is null)
+		{
+			await ivao.CreateCategoryChannelAsync(
+#if DEBUG
+				"[-BOT-EVENTS-]"
+#else
+				"[-EVENTS-]"
+#endif
+			);
+			category = FindCategoryByName("EVENTS")!;
+		}
+
+		var knownChannels = category.Channels.Select(c => c.Name).ToHashSet();
+		var halfHour = TimeSpan.FromMinutes(30);
+
+		foreach (var @event in context.Events.AsNoTracking().ToArray().Where(e => e.Start - halfHour < DateTime.UtcNow && DateTime.UtcNow < e.End + halfHour))
+		{
+			string channelName = "event-" + @event.Name;
+			if (knownChannels.Contains(channelName))
+			{
+				knownChannels.Remove(channelName);
+				continue;
+			}
+
+			string[] controllerSnowflakes = @event.Controllers.Split(':').Where(c => c.All(char.IsDigit)).Select(vid => context.Users.FirstOrDefault(u => u.Vid == int.Parse(vid))?.Snowflake?.ToString()).Where(v => v is not null).Cast<string>().ToArray();
+			await ivao.CreateVoiceChannelAsync(channelName, tcp => { tcp.CategoryId = new(category.Id); tcp.PermissionOverwrites = new(GetOverwrites(ivao, new() { Write = controllerSnowflakes })); });
 		}
 
 		foreach (var deletedChannel in knownChannels)

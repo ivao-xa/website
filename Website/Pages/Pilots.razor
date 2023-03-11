@@ -23,7 +23,7 @@
                             <th scope="row">
                                 @if (string.IsNullOrEmpty(user.Staff))
                                 {
-                                    <a href="https://ivao.aero/member?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;" target="_blank">@user.Vid</a>
+                                    <a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="link-dark" style="text-decoration-line: none;" target="_blank">@user.Vid</a>
                                 }
                                 else
                                 {
@@ -31,7 +31,7 @@
                                     @for (int posIdx = 0; posIdx < staffPoses.Length; ++posIdx)
                                     {
                                         var staffPos = staffPoses[posIdx];
-                                        bool localStaff = staffPos.StartsWith("XA-") || (staffPos.Contains('-') && "KC".Contains(staffPos[0]));
+                                        bool localStaff = staffPos.Contains('-') && ("KC".Contains(staffPos[0]) || new[] { "XA", "PH", "PA", "TJ" }.Contains(staffPos[0..2]));
 
                                         <a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m@(posIdx == 0 ? "e" : posIdx == staffPoses.Length - 1 ? "b" : "x")-1 text-decoration-none" target="_blank">@staffPos</a>
                                     }

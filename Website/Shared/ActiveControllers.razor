@@ -14,7 +14,7 @@
             <div class="d-flex flex-wrap justify-content-evenly align-items-center h-100">
                 @foreach (var ctrlr in DisplayedControllers)
                 {
-                    <a href="https://ivao.aero/member?ID=@(ctrlr.UserId)" class="m-1" style="max-width: @(DisplayedControllers.Count() > 2 ? DisplayedControllers.Count() > 30 ? "23%" : "30%" : "auto");">
+                    <a href="https://ivao.aero/Member.aspx?ID=@(ctrlr.UserId)" class="m-1" style="max-width: @(DisplayedControllers.Count() > 2 ? DisplayedControllers.Count() > 30 ? "23%" : "30%" : "auto");">
                         <img src="https://status.ivao.aero/@(DisplayedControllers.Count() > 30 ? "R/" + ctrlr.UserId : ctrlr.UserId).png?time=@(DateTime.UtcNow.Ticks)" title="@string.Join(Environment.NewLine, ctrlr.Atis?.Lines ?? Array.Empty<string>())" style="max-width: 100%;" />
                     </a>
                 }
