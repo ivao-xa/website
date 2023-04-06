@@ -84,8 +84,8 @@ public class Route : IEnumerable<(string Fix, Time? Time)>
 			// Not in scope.
 			yield break;
 
-		else if ((fixes.First().Item2.Longitude < lastUpdate.Longitude && Eastbound)
-			|| (fixes.First().Item2.Longitude > lastUpdate.Longitude && Westbound))
+		else if ((fixes.First().Item2.Longitude > lastUpdate.Longitude && Eastbound)
+			|| (fixes.First().Item2.Longitude < lastUpdate.Longitude && Westbound))
 			// Hasn't reached the first fix yet.
 			foreach (var retval in fixes.Take(4))
 				yield return (retval.Item1.Fix, retval.Item1.Time, retval.Item2);
