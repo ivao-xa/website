@@ -106,7 +106,7 @@
 				<span class="w-auto m-auto ps-1">next.</span>
 				<div class="w-auto m-auto">
 					<button class="btn btn-success" @onclick="SubmitStrip">✓</button>
-					<button class="btn btn-warning" @onclick="ResetStrip">↺</button>
+					<button class="btn btn-warning" @onclick="ResetStripAsync">↺</button>
 				</div>
 				<div class="col" />
 			</div>
@@ -161,11 +161,11 @@
 		{
 			Datalink.RegisterPilot(_connectedCallsign);
 			Datalink.ResponseIssued += Datalink_ResponseIssued;
-			ResetStrip();
+			_ = ResetStripAsync();
 		}
 	}
 
-	private async void ResetStrip()
+	private async Task ResetStripAsync()
 	{
 		if (await Whazzup.GetFeedAsync() is not Feed waf)
 			return;
@@ -211,8 +211,12 @@
 			Datalink.UnregisterPilot(_connectedCallsign);
 	}
 
+	private DateTime _lastCallsignLoadAttempt = DateTime.MinValue;
 	private async void LoadCallsign(User context)
 	{
+		if (DateTime.Now - _lastCallsignLoadAttempt < TimeSpan.FromSeconds(5))
+			return;
+
 		if (_connectedCallsign is not null)
 			Datalink.UnregisterPilot(_connectedCallsign);
 
@@ -222,9 +226,10 @@
 		{
 			_connectedCallsign = cs;
 			Datalink.RegisterPilot(cs);
-			ResetStrip();
+			await ResetStripAsync();
 		}
 
+		_lastCallsignLoadAttempt = DateTime.Now;
 		await InvokeAsync(StateHasChanged);
 	}
 
@@ -235,7 +240,7 @@
 		_lastRequestTime = DateTime.UtcNow;
 		_lastRequestAccepted = false;
 		_lastFailureReason = null;
-		ResetStrip();
+		_ = ResetStripAsync();
 	}
 
 	private void Datalink_ResponseIssued(string callsign, DatalinkUpdateResponse response)
