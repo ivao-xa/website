@@ -57,7 +57,17 @@
 		if (user is null || user.Snowflake is null)
 			return;
 
-		var dmc = await DiscordSrv._client.GetUser(user.Snowflake.Value).CreateDMChannelAsync();
+		var dcuser = DiscordSrv._client.GetUser(user.Snowflake.Value);
+
+		if (dcuser is null)
+		{
+			DiscordSrv._client.PurgeUserCache();
+			await DiscordSrv._client.DownloadUsersAsync(DiscordSrv._client.Guilds);
+			await ClearAsync(user);
+			return;
+		}
+
+		var dmc = await dcuser.CreateDMChannelAsync();
 		foreach (var msg in await dmc.GetMessagesAsync().FirstAsync())
 			await dmc.DeleteMessageAsync(msg);
 	}

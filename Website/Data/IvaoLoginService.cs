@@ -16,17 +16,24 @@ public class IvaoLoginService
 	public IvaoLoginService(ProtectedSessionStorage session, HttpClient http, IDbContextFactory<WebsiteContext> dbContextFactory) =>
 		(_session, _http, _dbContextFactory) = (session, http, dbContextFactory);
 
-	public async Task RegisterUserAsync(string token)
+	/// <summary>Pulls the user's info from the IVAO login API, generates a <see cref="User"/>, and pushes it to the database.</summary>
+	/// <param name="token">The user's IVAO login token.</param>
+	/// <returns>The created/retrieved <see cref="User"/>.</returns>
+	public async Task<User?> RegisterUserAsync(string token)
 	{
+		// Retrieve user's data from the IVAO API.
 		JsonSerializerOptions options = new() { NumberHandling = JsonNumberHandling.AllowReadingFromString, PropertyNameCaseInsensitive = true };
 		IvaoLoginData? json = await _http.GetFromJsonAsync<IvaoLoginData>($"https://login.ivao.aero/api.php?type=json&token={token}", options);
+        User retval;
 
-		if (json is null)
-			return;
+        if (json is null)
+			return null;
 
+		// Generate or update the user's database entry.
 		var db = await _dbContextFactory.CreateDbContextAsync();
 		if (await db.Users.FindAsync(json.Vid) is User u)
 		{
+			// Already an entry. Update it.
 			u.FirstName ??= json.FirstName;
 			u.LastName = json.LastName;
 			u.RatingAtc = (AtcRating)json.RatingAtc;
@@ -36,9 +43,11 @@ public class IvaoLoginService
 			u.Staff = json.Staff is null ? null : string.Join(':', json.Staff.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
 			await _session.SetAsync("User", u);
+			retval = u;
 		}
 		else
 		{
+			// First time logging in. Add them.
 			User user = new()
 			{
 				Vid = json.Vid,
@@ -54,12 +63,16 @@ public class IvaoLoginService
 			};
 
 			await db.Users.AddAsync(user);
+			retval = user;
 		}
 
-		await db.SaveChangesAsync();
+		_ = db.SaveChangesAsync();
+		return retval;
 	}
 
-	public async Task<User?> GetAuthenticatedUserAsync()
+    /// <summary>Gets the current <see cref="User"/> from the browser's cache.</summary>
+    /// <returns>The current <see cref="User"/> if they are signed in, otherwise <see langword="null"/>.</returns>
+    public async Task<User?> GetAuthenticatedUserAsync()
 	{
 		try
 		{

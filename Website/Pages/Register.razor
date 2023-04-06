@@ -25,6 +25,7 @@
     </ChildContent>
     <Loading>
         Registering&hellip;
+        (If this page doesn't change in 30 seconds, please refresh)
     </Loading>
 </Authenticated>
 
@@ -47,6 +48,7 @@
         if (snowflake == 0)
             return;
 
+        _ = Discord.SendMessageAsync(user, $"Thanks for registering, your roles are being assigned and your account is being set-up. This can take up to fifteen minutes, we'll ping you when it's done.", 60000);
         var context = await ContextFactory.CreateDbContextAsync();
         user = context.Users.Find(user.Vid)!;
         user.Snowflake = snowflake;
@@ -55,7 +57,7 @@
         _ = Task.Run(async () =>
         {
             await Discord.EnforceRolesAsync(user, IvaoApi);
-            await Discord.SendMessageAsync(user, $"Thanks for registering, {user.FirstName}! You should now have your roles.", 60);
+            await Discord.SendMessageAsync(user, $"Thanks for waiting, {user.FirstName}! You should now have your roles.", 60000);
         });
     }
 }
