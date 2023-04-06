@@ -1,0 +1,46 @@
+﻿.flightstrip {
+    background-color: #444444;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.btn-datalink {
+    width: 10px;
+}
+
+.datablock {
+    width: 30%;
+}
+
+.callsign {
+    margin: auto;
+    height: 1.2em;
+}
+
+.num-input {
+    margin: auto;
+    top: 0px;
+    bottom: 0px;
+    width: 5.5em;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+.time-input {
+    width: 3em;
+    flex: 0 0 auto;
+}
+
+.eastbound .direction-west:not(.direction-east) {
+    display: none!important;
+}
+
+.westbound .direction-east:not(.direction-west) {
+    display: none !important;
+}
+
+input.form-control {
+    color: #000000;
+}

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 
 using Website.Data;
+using Website.Data.Ocms;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,8 @@ builder.Services.AddDbContextFactory<WebsiteContext>(options => options.UseMySQL
 builder.Services.AddSingleton<WhazzupService>();
 builder.Services.AddSingleton<IvaoApiService>();
 builder.Services.AddSingleton<DiscordService>();
+builder.Services.AddSingleton<OccStrips>();
+builder.Services.AddSingleton<DatalinkService>();
 builder.Services.AddBlazorise(o => o.Immediate = true).AddBootstrap5Providers().AddFontAwesomeIcons();
 
 var app = builder.Build();

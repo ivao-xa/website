@@ -1,0 +1,26 @@
+﻿.track {
+    border-radius: 5px;
+    background-color: #222222;
+}
+
+.eastbound {
+    width: 48%;
+    border-radius: 5px;
+    background-color: #EBCF9F;
+}
+
+.westbound {
+    width: 48%;
+    border-radius: 5px;
+    background-color: #AAC4E6;
+}
+
+.bound-label {
+    margin: auto;
+    height: 28px;
+}
+
+.bound-label>span {
+    position: relative;
+    top: 10px;
+}

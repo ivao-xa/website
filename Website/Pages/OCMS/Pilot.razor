@@ -1,0 +1,262 @@
+﻿@page "/ocms/pilot"
+@layout OcmsLayout
+@using Website.Data.Ocms;
+@using Website.Data;
+@using Website.Shared.OCMS
+@implements IDisposable
+@inject DatalinkService Datalink
+@inject WhazzupService Whazzup
+@inject NavigationManager NavMan
+@inject OccStrips Strips
+
+<OccAuthenticated>
+	<div class="row my-3">
+		<div class="col" />
+		<div class="text-center text-bg-success p-1 rounded fs-4 col-1">
+			@(new Time(DateTime.UtcNow.Hour, DateTime.UtcNow.Minute))z
+		</div>
+		<div class="col-1" />
+		<div class="text-center text-bg-@(_connectedCallsign is null ? "danger" : "warning") p-1 rounded fs-4 col-1">@(_connectedCallsign ?? "Not Connected")</div>
+		<div class="col" />
+	</div>
+	@if (_connectedCallsign is null)
+	{
+		LoadCallsign(context);
+	}
+	else if (_nextRequest is null) { }
+	else
+	{
+		<div class="text-bg-secondary container m-auto rounded p-4">
+			<div id="last-request" class="row mb-3 py-2 rounded @(_lastRequestAccepted ? "bg-success" : _lastFailureReason is null ? "bg-warning" : "bg-danger")">
+				@if (_lastRequest is not null)
+				{
+					<span class="col m-auto text-end px-0">Previous (@_lastRequestTime.ToString("HHmm")z):</span>
+					<span class="m-auto w-auto px-1">
+						@(_connectedCallsign) passed
+					</span>
+					<div class="w-auto px-0">
+						<div class="input-group">
+							<span class="input-group-text p-1" style="width: 4.5em;"><span class="m-auto font-monospace">@OccStrips.FormatFix(_lastRequest.Passed.Fix)</span></span>
+							<input type="text" style="width: 3em;" value="@_lastRequest.Passed.Time.ToString()" class="form-control p-1 time-input font-monospace @CheckFail("Passing")" disabled="disabled" />
+						</div>
+					</div>
+					<span class="m-auto w-auto ps-0 pe-1">,</span>
+					<div class="col-md-1 col-3 px-1">
+						<div class="input-group">
+							<span class="input-group-text p-1">FL</span>
+							<input type="number" value="@_lastRequest.FlightLevel.ToString("000")" class="form-control p-1 @CheckFail("FL")" disabled="disabled" />
+						</div>
+					</div>
+					<div class="col-md-1 col-3 px-0">
+						<div class="input-group">
+							<span class="input-group-text p-1">M</span>
+							<input type="number" value="@_lastRequest.MachNumber.ToString("#.00")" class="form-control p-1 @CheckFail("Mach")" disabled="disabled" />
+						</div>
+					</div>
+					<span class="m-auto w-auto ps-0 pe-1">. Estimating</span>
+					<div class="w-auto px-0">
+						<div class="input-group">
+							<span class="input-group-text p-1" style="width: 4.5em;"><span class="m-auto font-monospace">@OccStrips.FormatFix(_lastRequest.Estimating.Fix)</span></span>
+							<input type="text" style="width: 3em;" value="@_lastRequest.Estimating.Time.ToString()" class="form-control p-1 time-input font-monospace @CheckFail("Estimating")" disabled="disabled" />
+						</div>
+					</div>
+					<span class="w-auto m-auto ps-0 pe-1">,</span>
+					<div class="w-auto px-0">
+						<div class="input-group">
+							<span class="input-group-text p-1" style="width: 4.5em;"><span class="m-auto font-monospace">@OccStrips.FormatFix(_lastRequest.Next)</span></span>
+						</div>
+					</div>
+					<span class="col m-auto ps-1">next.</span>
+				}
+			</div>
+			<div id="next-request" class="row mt-3">
+				<span class="m-auto col text-end px-1">@(_connectedCallsign) passing</span>
+				<div class="w-auto px-0">
+					<div class="input-group">
+						<span class="input-group-text p-1" style="width: 4.5em;"><span class="m-auto font-monospace">@OccStrips.FormatFix(_passedFix)</span></span>
+						<input type="text" style="width: 3em;" @bind="_passedTimeStr" class="form-control p-1 time-input font-monospace" />
+					</div>
+				</div>
+				<span class="m-auto w-auto ps-0 pe-1">,</span>
+				<div class="col-md-1 col-3 px-1">
+					<div class="input-group">
+						<span class="input-group-text p-1">FL</span>
+						<input type="number" @bind="_fl" class="form-control p-1" step="10" />
+					</div>
+				</div>
+				<div class="col-md-1 col-3 px-0">
+					<div class="input-group">
+						<span class="input-group-text p-1">M</span>
+						<input type="number" @bind="_mach" class="form-control p-1" step=".01" />
+					</div>
+				</div>
+				<span class="m-auto w-auto ps-0 pe-1">. Estimating</span>
+				<div class="w-auto px-0">
+					<div class="input-group">
+						<span class="input-group-text p-1" style="width: 4.5em;"><span class="m-auto font-monospace">@OccStrips.FormatFix(_estimatingFix)</span></span>
+						<input type="text" style="width: 3em;" @bind="_estimatingTimeStr" class="form-control p-1 time-input font-monospace" />
+					</div>
+				</div>
+				<span class="w-auto m-auto ps-0 pe-1">,</span>
+				<div class="w-auto px-0">
+					<div class="input-group">
+						<span class="input-group-text p-1" style="width: 4.5em;"><span class="m-auto font-monospace">@OccStrips.FormatFix(_nextFix)</span></span>
+					</div>
+				</div>
+				<span class="w-auto m-auto ps-1">next.</span>
+				<div class="w-auto m-auto">
+					<button class="btn btn-success" @onclick="SubmitStrip">✓</button>
+					<button class="btn btn-warning" @onclick="ResetStrip">↺</button>
+				</div>
+				<div class="col" />
+			</div>
+		</div>
+	}
+</OccAuthenticated>
+
+@code
+{
+	string? _connectedCallsign = "ACA813";
+
+	DatalinkUpdateRequest? _lastRequest = new(("40/20", new("0800")), 360, .72m, ("41/30", new("0830")), "42/40");
+	DateTime _lastRequestTime = DateTime.MinValue;
+	bool _lastRequestAccepted = false;
+	string? _lastFailureReason = null;
+
+	DatalinkUpdateRequest _nextRequest => new((_passedFix, _passedTime), _fl, _mach, (_estimatingFix, _estimatingTime), _nextFix);
+
+	private string _passedTimeStr
+	{
+		get => _passedTime.ToString();
+
+		set
+		{
+			if (Time.TryParse(value, out Time? res))
+				_passedTime = res;
+		}
+	}
+
+	private string _estimatingTimeStr
+	{
+		get => _estimatingTime.ToString();
+
+		set
+		{
+			if (Time.TryParse(value, out Time? res))
+				_estimatingTime = res;
+		}
+	}
+
+	private string _passedFix = "";
+	private Time _passedTime = new("0000");
+	private int _fl = 0;
+	private decimal _mach = 0;
+	private string _estimatingFix = "";
+	private Time _estimatingTime = new("0000");
+	private string _nextFix = "";
+
+	override protected void OnParametersSet()
+	{
+		if (_connectedCallsign is not null)
+		{
+			Datalink.RegisterPilot(_connectedCallsign);
+			Datalink.ResponseIssued += Datalink_ResponseIssued;
+			ResetStrip();
+		}
+	}
+
+	private async void ResetStrip()
+	{
+		if (await Whazzup.GetFeedAsync() is not Feed waf)
+			return;
+
+		var p = waf.Clients.Pilots.SingleOrDefault(p => p.Callsign == _connectedCallsign);
+		var s = Strips.Strips.SingleOrDefault(s => s.Callsign == _connectedCallsign);
+
+		if (s is null || p.LastTrack is not PilotTrack pt)
+			return;
+
+		var fixes = s.Route.GetDisplayedFixes(pt).ToArray();
+		if (fixes.Length > 2 && fixes[0].Time is not null && fixes[1].Time is not null)
+			fixes = fixes[1..];
+
+		_fl = s.FlightLevel;
+		_mach = s.Speed;
+
+		_passedFix = fixes[0].Fix;
+		_passedTime = fixes[0].Time ?? OccStrips.Estimate(pt, s.Speed, fixes[0].Coordinates);
+
+		if (fixes.Length > 1)
+		{
+			_estimatingFix = fixes[1].Fix;
+			_estimatingTime = fixes[1].Time ?? OccStrips.Estimate(pt, s.Speed, fixes[1].Coordinates);
+		}
+		else
+		{
+			_estimatingFix = "EXITED";
+			_estimatingTime = new("0000z");
+		}
+
+		if (fixes.Length > 2)
+			_nextFix = fixes[2].Fix;
+		else
+			_nextFix = "EXITED";
+
+		await InvokeAsync(StateHasChanged);
+	}
+
+	public void Dispose()
+	{
+		if (_connectedCallsign is not null)
+			Datalink.UnregisterPilot(_connectedCallsign);
+	}
+
+	private async void LoadCallsign(User context)
+	{
+		if (_connectedCallsign is not null)
+			Datalink.UnregisterPilot(_connectedCallsign);
+
+		if ((await Whazzup.GetFeedAsync()) is not Feed waf)
+			NavMan.NavigateTo(NavMan.Uri, true, true);
+		else if (waf.Clients.Pilots.FirstOrDefault(p => p.UserId == context.Vid).Callsign is string cs)
+		{
+			_connectedCallsign = cs;
+			Datalink.RegisterPilot(cs);
+			ResetStrip();
+		}
+
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private void SubmitStrip()
+	{
+		Datalink.Request(_connectedCallsign!, _nextRequest);
+		_lastRequest = _nextRequest;
+		_lastRequestTime = DateTime.UtcNow;
+		_lastRequestAccepted = false;
+		_lastFailureReason = null;
+		ResetStrip();
+	}
+
+	private void Datalink_ResponseIssued(string callsign, DatalinkUpdateResponse response)
+	{
+		if (callsign != _connectedCallsign)
+			return;
+
+		if (response.Approved)
+			_lastRequestAccepted = true;
+		else
+		{
+			_lastFailureReason = response.RejectionReason;
+			_passedTime = _lastRequest!.Passed.Time;
+			_estimatingTime = _lastRequest.Estimating.Time;
+			_fl = _lastRequest.FlightLevel;
+			_mach = _lastRequest.MachNumber;
+		}
+
+		_ = InvokeAsync(StateHasChanged);
+	}
+
+	string CheckFail(string condition) =>
+		_lastFailureReason == condition ? "text-bg-warning" : "";
+}

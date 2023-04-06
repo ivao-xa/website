@@ -1,0 +1,3 @@
+﻿input.form-control:not(:disabled) {
+    color: #000000;
+}

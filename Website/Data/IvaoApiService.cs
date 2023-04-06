@@ -72,7 +72,7 @@ public class IvaoApiService
     }
 }
 
-
+#pragma warning disable IDE1006
 public class FraList
 {
     public Fra[] items { get; set; } = Array.Empty<Fra>();
@@ -160,3 +160,4 @@ public class Center
     public string countryId { get; set; } = string.Empty;
     public bool military { get; set; }
 }
+#pragma warning restore IDE1006
