@@ -36,7 +36,7 @@
 					</div>
 					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track).OrderBy(s => s.Callsign))
 					{
-						<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+						<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
 					}
 				</div>
 			}
@@ -48,7 +48,7 @@
 				</div>
 				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null).OrderBy(s => s.Callsign))
 				{
-					<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+					<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
 				}
 			</div>
 			<div class="flex-fill" />
@@ -71,7 +71,7 @@
 					</div>
 					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track).OrderBy(s => s.Callsign))
 					{
-						<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+						<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
 					}
 				</div>
 			}
@@ -83,7 +83,7 @@
 				</div>
 				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null).OrderBy(s => s.Callsign))
 				{
-					<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+					<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
 				}
 			</div>
 			<div class="flex-fill" />
@@ -110,6 +110,7 @@
 
 @code {
 	private Strip? _selectedFlightStrip = null;
+	private Dictionary<string, PilotTrack>? _pilotTracks;
 
 	private string? SelectedRoute
 	{
@@ -124,13 +125,18 @@
 		}
 	}
 
-	private async Task<PilotTrack> GetLastTrackAsync(string callsign) =>
-		(await Whazzup.GetFeedAsync())?.Clients.Pilots.SingleOrDefault(p =>
-			p.Callsign.Equals(callsign, StringComparison.InvariantCultureIgnoreCase)
-		).LastTrack ?? new();
+	private PilotTrack? GetLastTrack(string callsign) => _pilotTracks is not null && _pilotTracks.TryGetValue(callsign, out PilotTrack pt) ? pt : null;
 
-	protected override void OnAfterRender(bool firstRender)
+	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
+		var pilotTrackPairs =
+			(await Whazzup.GetFeedAsync())?.Clients.Pilots
+				.Where(p => p.LastTrack is not null)
+				.Select(p => new KeyValuePair<string, PilotTrack>(p.Callsign.ToUpperInvariant(), p.LastTrack!.Value));
+
+		if (pilotTrackPairs is not null)
+			_pilotTracks = new(pilotTrackPairs);
+
 		if (!firstRender)
 			return;
 

@@ -613,8 +613,11 @@ public partial class OccStrips : IDisposable
 		_natTracks.TryGetValue(track, out string[]? retval) ? retval : null;
 
 
-	public static Time Estimate(PilotTrack lastUpdate, decimal clearedSpeed, (decimal Lat, decimal Lon) fix)
+	public static Time Estimate(PilotTrack? lastKnownUpdate, decimal clearedSpeed, (decimal Lat, decimal Lon) fix)
 	{
+		if (lastKnownUpdate is not PilotTrack lastUpdate)
+			return new(0, 0);
+
 		double speed = lastUpdate.GroundSpeed;
 		if (lastUpdate.OnGround)
 			speed = (double)(clearedSpeed / 0.0015119m);
@@ -623,7 +626,7 @@ public partial class OccStrips : IDisposable
 
 		int totalMins = lastUpdate.Timestamp.Minute + (lastUpdate.Timestamp.Hour * 60) + (int)minsRemaining;
 
-		return new Time(totalMins / 60 % 24, totalMins % 60);
+		return new(totalMins / 60 % 24, totalMins % 60);
 	}
 
 	private static double Haversine((double Lat, double Lon) from, (double Lat, double Lon) to)

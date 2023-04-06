@@ -230,7 +230,7 @@ public struct ATC
 	public Atis? Atis { get; set; }
 	public object LastTrack { get; set; }
 
-	public override int GetHashCode() => UserId;
+	public override readonly int GetHashCode() => UserId;
 }
 
 public struct AtcSession

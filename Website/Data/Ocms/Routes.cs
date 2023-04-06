@@ -74,8 +74,11 @@ public class Route : IEnumerable<(string Fix, Time? Time)>
 	}
 
 	/// <summary>Gets the previous and next three fixes along the route.</summary>
-	public IEnumerable<(string Fix, Time? Time, (decimal Latitude, decimal Longitude) Coordinates)> GetDisplayedFixes(PilotTrack lastUpdate, OccStrips? strips = null)
+	public IEnumerable<(string Fix, Time? Time, (decimal Latitude, decimal Longitude) Coordinates)> GetDisplayedFixes(PilotTrack? lastKnownUpdate, OccStrips? strips = null)
 	{
+		if (lastKnownUpdate is not PilotTrack lastUpdate)
+			yield break;
+
 #pragma warning disable IDE0033
 		_strips = strips ?? _strips;
 		var fixes = this.Select(i => (i, OccStrips.GetOccFixPosition(i.Fix))).Where(i => i.Item2 is not null).Select(i => (i.i, i.Item2!.Value)).ToArray();
