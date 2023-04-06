@@ -13,7 +13,7 @@
 				<span class="text-center">PM Management</span>
 				<div class="d-flex flex-row">
 					<button class="btn btn-primary m-2" @onclick="() => Ping(context)">Ping Me!</button>
-					<button class="btn btn-danger m-2" @onclick="() => Clear(context)">Clear Chat</button>
+					<button class="btn btn-danger m-2" @onclick="() => ClearAsync(context)">Clear Chat</button>
 				</div>
 			</div>
 
@@ -52,14 +52,14 @@
 		_ = DiscordSrv.SendMessageAsync(user, "Hi!", 5000);
 	}
 
-	private void Clear(User? user)
+	private async Task ClearAsync(User? user)
 	{
 		if (user is null || user.Snowflake is null)
 			return;
 
-		var dmc = DiscordSrv._client.GetUser(user.Snowflake.Value).CreateDMChannelAsync().Result;
-		foreach (var msg in dmc.GetMessagesAsync().FirstAsync().Result)
-			dmc.DeleteMessageAsync(msg);
+		var dmc = await DiscordSrv._client.GetUser(user.Snowflake.Value).CreateDMChannelAsync();
+		foreach (var msg in await dmc.GetMessagesAsync().FirstAsync())
+			await dmc.DeleteMessageAsync(msg);
 	}
 
 	private bool enforcing = false;

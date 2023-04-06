@@ -136,10 +136,18 @@ public partial class DiscordService
 		if (FindTextChannelByName("verify") is not SocketTextChannel verifyChannel)
 			return;
 
+		HashSet<ulong> activatedUsers = new();
 		async Task buttonClicked(SocketMessageComponent component)
 		{
 			if (component.Data.Type != ComponentType.Button || component.Data.CustomId != "connect")
 				return;
+			else if (activatedUsers.Contains(component.User.Id))
+			{
+				await component.RespondAsync("You have already pressed this button. If you are still having issues after five minutes, ping an administrator.");
+				return;
+			}
+			else
+				activatedUsers.Add(component.User.Id);
 
 			await component.DeferAsync();
 
