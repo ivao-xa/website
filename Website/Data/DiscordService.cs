@@ -198,16 +198,16 @@ public partial class DiscordService
 
 			for (int shift = 0; shift < 64; ++shift)
 				if (roles.HasFlag((DiscordRoles)((ulong)1 << shift)))
-					yield return ivao.Roles.Single(r => r.Name.Equals(_roles[(DiscordRoles)((ulong)1 << shift)], StringComparison.InvariantCultureIgnoreCase));
+					yield return ivao.Roles.Single(r => r.Name.Equals(_roles[(DiscordRoles)((ulong)1 << shift)], StringComparison.InvariantCulture));
 
 			if (!roles.HasFlag(DiscordRoles.Member))
-				yield return ivao.Roles.Single(r => r.Name.Equals("visitor", StringComparison.InvariantCultureIgnoreCase));
+				yield return ivao.Roles.Single(r => r.Name.Equals("visitor", StringComparison.InvariantCulture));
 
 			if (atcRating is AtcRating ar)
-				yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((AtcRating)Math.Min((int)ar, (int)AtcRating.SEC)) switch { "SEC" => "SEC+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCultureIgnoreCase));
+				yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((AtcRating)Math.Min((int)ar, (int)AtcRating.SEC)) switch { "SEC" => "SEC+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
 
 			if (pilotRating is PilotRating pr)
-				yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((PilotRating)Math.Min((int)pr, (int)PilotRating.ATP)) switch { "ATP" => "ATP+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCultureIgnoreCase));
+				yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((PilotRating)Math.Min((int)pr, (int)PilotRating.ATP)) switch { "ATP" => "ATP+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
 		}
 
 		_client.PurgeUserCache();
