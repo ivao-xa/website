@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 
 using Website.Data;
 using Website.Data.Ocms;
@@ -13,6 +14,11 @@ using Website.Data.Ocms;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseUrls("http://*:80;https://*:443");
+
+if (File.Exists("site.crt"))
+	builder.WebHost.UseKestrel(serverOptions =>
+		serverOptions.ListenAnyIP(443, listenOptions => listenOptions.UseHttps("site.crt"))
+	);
 
 builder.Configuration.SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJsonFile("appsettings.json", false, true).AddEnvironmentVariables();
 
