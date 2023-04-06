@@ -6,8 +6,8 @@
 @inject WhazzupService Whazzup
 
 <div class="row flightstrip m-2 text-light@((Westbound ? " direction-west" : "") + (Eastbound ? " direction-east" : ""))">
-	<button class="btn btn-@(Datalink.IsConnected(Strip.Callsign) ? "success" : "danger") btn-datalink p-0 m-1" type="button" tabindex="-1"></button>
-	<div class="datablock row p-0 mx-0 mt-0 mb-1 col">
+	<button class="btn btn-datalink @(Datalink.IsConnected(Strip.Callsign) ? "connected" : "disconnected") p-0 m-1" type="button" tabindex="-1"></button>
+	<div class="row p-0 mx-0 mt-0 mb-1 col">
 		<div class="callsign col-4"><a class="text-reset text-decoration-none" href="https://webeye.ivao.aero/?pilotId=@Strip.Callsign" target="_blank" tabindex="-1">@Strip.Callsign</a> <span class="clickable" data-bs-toggle="offcanvas" data-bs-target="#offcanvasFlightstrip" aria-controls="offcanvasFlightstrip" @onclick="() => SetSelected(Strip)">ⓘ</span></div>
 		<div class="input-group num-input my-1 col-4 px-0">
 			<span class="input-group-text p-1">FL</span>
@@ -35,7 +35,7 @@
 		</div>
 	</div>
 
-	<div class="row ms-1 col-8">
+	<div class="row col-8">
 		@{
 			var fixes = DisplayedFixes.ToArray();
 			for (int cntr = 0; cntr < 4; ++cntr)
@@ -47,7 +47,7 @@
 					fixNames[cntr] = fix;
 					fixTimes[cntr] = time;
 
-					<div class="col-3 my-1">
+					<div class="col-3 my-1 px-0">
 						<div class="input-group m-auto">
 							<span class="input-group-text p-1" style="width: 4.5em;"><span class="m-auto font-monospace">@OccStrips.FormatFix(fix)</span></span>
 

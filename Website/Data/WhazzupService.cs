@@ -31,6 +31,8 @@ public class WhazzupService
 	public event Func<ATC, Task>? AtcDisconnected;
 	/// <summary>All controllers currently tracked by the system.</summary>
 	public ImmutableHashSet<ATC> ConnectedControllers { get; private set; } = ImmutableHashSet<ATC>.Empty;
+	/// <summary>XA controllers currently tracked by the system.</summary>
+	public ImmutableHashSet<ATC> ConnectedXAControllers { get; private set; } = ImmutableHashSet<ATC>.Empty;
 
 	private readonly HttpClient _http;
 	private Feed? _feed = null;
@@ -62,7 +64,8 @@ public class WhazzupService
 		Feed? _feed = await GetFeedAsync();
 		if (_feed is not null)
 		{
-			var newControllers = _feed.Value.Clients.Atcs.Where(a => IsXAPosition(a.Callsign)).ToImmutableHashSet();
+			ConnectedControllers = _feed.Value.Clients.Atcs.ToImmutableHashSet();
+			var newControllers = ConnectedControllers.Where(a => IsXAPosition(a.Callsign)).ToImmutableHashSet();
 
 			// Keep the currency database live
 			foreach (var controller in newControllers)
@@ -89,10 +92,10 @@ public class WhazzupService
 			// Trigger update events
 			static IEnumerable<ATC> setDiff(ImmutableHashSet<ATC> from, ImmutableHashSet<ATC> subtract) => from.ExceptBy(subtract.Select(c => c.Callsign), c => c.Callsign);
 
-			Task.WaitAll(setDiff(ConnectedControllers, newControllers).Select(async controller => await (AtcDisconnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
-			Task.WaitAll(setDiff(newControllers, ConnectedControllers).Select(async controller => await (AtcConnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
+			Task.WaitAll(setDiff(ConnectedXAControllers, newControllers).Select(async controller => await (AtcDisconnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
+			Task.WaitAll(setDiff(newControllers, ConnectedXAControllers).Select(async controller => await (AtcConnected?.Invoke(controller) ?? Task.CompletedTask)).ToArray());
 
-			ConnectedControllers = newControllers;
+			ConnectedXAControllers = newControllers;
 		}
 	}
 }

@@ -11,7 +11,7 @@
 
 <OccAuthenticated>
 	<div class="row my-3">
-		<div class="col"/>
+		<div class="col" />
 		<div class="text-center text-bg-success p-1 rounded fs-4 col-1">@(new Time(DateTime.UtcNow.Hour, DateTime.UtcNow.Minute))z</div>
 		<div class="col-1" />
 		<div class="text-center text-bg-@(CheckAuthed(context) ? "warning" : "danger") p-1 rounded fs-4 col-1">@(GetAuthed(context)?.Callsign ?? "Not Connected")</div>
@@ -20,40 +20,20 @@
 
 	<div class="d-flex flex-row mb-3 justify-content-evenly">
 		<div class="d-flex flex-column eastbound">
-			<div class="pt-3 pb-2 m-auto"><span class="p-2 text-bg-dark">Eastbound</span></div>
+			<div class="d-flex flex-row gap-2 justify-content-center">
+				<div class="status big color-east" />
+				<b class="text-bg-dark">Eastbound</b>
+			</div>
 			@for (char track = 'Z'; track >= 'M'; --track)
 			{
 				if (!OccStrips.Strips.Any(s => s.Track == track))
 					continue;
 
 				<div class="d-flex flex-column track mx-3 mt-2">
-					<span class="mt-2 mb-0 ms-4">TRACK @track</span>
-					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track).OrderBy(s => s.Callsign))
-					{
-						<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" />
-					}
-				</div>
-			}
-
-			<div class="d-flex flex-column track mx-3 my-4">
-				<span class="mt-2 mb-0 ms-4">RANDOM ROUTES</span>
-				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null).OrderBy(s => s.Callsign))
-				{
-					<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" />
-				}
-			</div>
-			<div class="flex-fill" />
-		</div>
-
-		<div class="d-flex flex-column westbound">
-			<div class="pt-3 pb-2 m-auto"><span class="p-2 text-bg-dark">Westbound</span></div>
-			@for (char track = 'A'; track <= 'N'; ++track)
-			{
-				if (!OccStrips.Strips.Any(s => s.Track == track))
-					continue;
-
-				<div class="d-flex flex-column track mx-3 mt-2">
-					<span class="mt-2 mb-0 ms-4">TRACK @track</span>
+					<div class="mt-2 mb-0 ms-2 d-flex flex-row justify-content-start gap-2">
+						<div class="status color-east" />
+						<span>TRACK @track</span>
+					</div>
 					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track).OrderBy(s => s.Callsign))
 					{
 						<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
@@ -62,7 +42,45 @@
 			}
 
 			<div class="d-flex flex-column track mx-3 my-4">
-				<span class="mt-2 mb-0 ms-4">RANDOM ROUTES</span>
+				<div class="mt-2 mb-0 ms-2 d-flex flex-row justify-content-start gap-2">
+					<div class="status color-east" />
+					<span>RANDOM ROUTES</span>
+				</div>
+				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null).OrderBy(s => s.Callsign))
+				{
+					<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+				}
+			</div>
+			<div class="flex-fill" />
+		</div>
+
+		<div class="d-flex flex-column westbound">
+			<div class="d-flex flex-row gap-2 justify-content-center">
+				<div class="status big color-west" />
+				<b class="text-bg-dark">Westbound</b>
+			</div>
+			@for (char track = 'A'; track <= 'N'; ++track)
+			{
+				if (!OccStrips.Strips.Any(s => s.Track == track))
+					continue;
+
+				<div class="d-flex flex-column track mx-3 mt-2">
+					<div class="mt-2 mb-0 ms-2 d-flex flex-row justify-content-start gap-2">
+						<div class="status color-west" />
+						<span>TRACK @track</span>
+					</div>
+					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track).OrderBy(s => s.Callsign))
+					{
+						<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+					}
+				</div>
+			}
+
+			<div class="d-flex flex-column track mx-3 my-4">
+				<div class="mt-2 mb-0 ms-2 d-flex flex-row justify-content-start gap-2">
+					<div class="status color-west" />
+					<span>RANDOM ROUTES</span>
+				</div>
 				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null).OrderBy(s => s.Callsign))
 				{
 					<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrackAsync(strip.Callsign).Result" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
@@ -98,7 +116,7 @@
 	{
 		get => _selectedFlightStrip?.Route?.ToString();
 
-		set 
+		set
 		{
 			if (_selectedFlightStrip is null || string.IsNullOrWhiteSpace(value))
 				return;
@@ -143,8 +161,8 @@
 		await InvokeAsync(StateHasChanged);
 	}
 
-	private bool CheckAuthed(User user) => true ||
-		Whazzup.ConnectedControllers.Any(atc => atc.UserId == user.Vid);
+	private bool CheckAuthed(User user) =>
+		Whazzup.ConnectedControllers.Where(atc => atc.Callsign.StartsWith("CZQX") || atc.Callsign.StartsWith("EGGX") || atc.Callsign.StartsWith("KZWY")).Any(atc => atc.UserId == user.Vid);
 
 
 	private ATC? GetAuthed(User user) =>

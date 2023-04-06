@@ -591,7 +591,7 @@ public partial class DiscordService
 					await updateAsync();
 				}
 
-				foreach (var atc in whazzup.ConnectedControllers)
+				foreach (var atc in whazzup.ConnectedXAControllers)
 					await whazzup_ConnectedAsync(atc);
 
 				whazzup.AtcConnected += whazzup_ConnectedAsync;

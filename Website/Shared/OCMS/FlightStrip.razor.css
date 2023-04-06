@@ -1,20 +1,25 @@
 ﻿.flightstrip {
-    background-color: #444444;
+    background-color: #525458;
     border-radius: 5px;
     white-space: nowrap;
+    height: 40px;
 }
 
 .btn-datalink {
-    width: 10px;
+    width: 6px;
+    height: 80%;
 }
 
-.datablock {
-    width: 30%;
-}
+    .btn-datalink.connected {
+        background-color: #5EBAC4;
+    }
+
+    .btn-datalink.disconnected {
+        background-color: #ED5076;
+    }
 
 .callsign {
     margin: auto;
-    height: 1.2em;
 }
 
 .num-input {
@@ -34,13 +39,18 @@
 }
 
 .eastbound .direction-west:not(.direction-east) {
-    display: none!important;
+    display: none !important;
 }
 
 .westbound .direction-east:not(.direction-west) {
     display: none !important;
 }
 
-input.form-control {
-    color: #000000;
+input {
+    background-color: #6C6E71 !important;
+    color: #FFFFFF !important;
 }
+
+    input.form-control {
+        color: #FFFFFF !important;
+    }
