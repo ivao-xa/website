@@ -37,12 +37,13 @@ public class FlightStrip
 	}
 
 	public static bool operator ==(FlightStrip left, FlightStrip right) =>
-		(left.Callsign, left.Type, left.Selcal, left.Track, left.FlightLevel, left.Speed) ==
-		(right.Callsign, right.Type, right.Selcal, right.Track, right.FlightLevel, right.Speed) &&
+		left.GetHashCode() == right.GetHashCode() &&
 		left.Route == right.Route;
 
 	public static bool operator !=(FlightStrip left, FlightStrip right) =>
 		!(left == right);
+
+	public override int GetHashCode() => (Callsign, Type, Selcal, Track, FlightLevel, Speed).GetHashCode();
 
 	public override bool Equals(object? obj)
 	{

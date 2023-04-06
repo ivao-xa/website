@@ -76,6 +76,7 @@ public class Route : IEnumerable<(string Fix, Time? Time)>
 	/// <summary>Gets the previous and next three fixes along the route.</summary>
 	public IEnumerable<(string Fix, Time? Time, (decimal Latitude, decimal Longitude) Coordinates)> GetDisplayedFixes(PilotTrack lastUpdate, OccStrips? strips = null)
 	{
+#pragma warning disable IDE0033
 		_strips = strips ?? _strips;
 		var fixes = this.Select(i => (i, OccStrips.GetOccFixPosition(i.Fix))).Where(i => i.Item2 is not null).Select(i => (i.i, i.Item2!.Value)).ToArray();
 
@@ -107,6 +108,7 @@ public class Route : IEnumerable<(string Fix, Time? Time)>
 			foreach (var retval in fixes.Skip(Math.Max(0, passingOffset - 1)).Take(4))
 				yield return (retval.Item1.Fix, retval.Item1.Time, retval.Item2);
 		}
+#pragma warning restore IDE0033
 	}
 
 	private static IEnumerable<string> ExpandFix(string fix, OccStrips strips)
@@ -151,6 +153,8 @@ public class Route : IEnumerable<(string Fix, Time? Time)>
 	public override string ToString() => string.Join(' ', _fixes);
 	public IEnumerator<(string Fix, Time? Time)> GetEnumerator() => new FixEnumerator(this);
 	IEnumerator IEnumerable.GetEnumerator() => new FixEnumerator(this);
+	public override bool Equals(object? obj) => obj is Route route && EqualityComparer<List<string>>.Default.Equals(_fixes, route._fixes);
+	public override int GetHashCode() => HashCode.Combine(_fixes);
 
 	private class FixEnumerator : IEnumerator<(string Fix, Time? Time)>, IEnumerator
 	{

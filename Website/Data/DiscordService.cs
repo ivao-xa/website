@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace Website.Data;
 
-public class DiscordService
+public partial class DiscordService
 {
 	public const string CHANNEL_CONF_PATH = "discord_channels.json";
 	public const string ROLE_CONF_PATH = "discord_roles.txt";
@@ -127,7 +127,7 @@ public class DiscordService
 		_client.ButtonExecuted += yesNoButtonClicked;
 		await stc.SendMessageAsync(text: query, components: new ComponentBuilder().WithButton("Yes", "yes", ButtonStyle.Success).WithButton("No", "no", ButtonStyle.Danger).Build());
 
-		await Task.Run(() => mres.WaitOne());
+		await Task.Run(mres.WaitOne);
 		return result;
 	}
 
@@ -145,9 +145,9 @@ public class DiscordService
 
 			string reglink =
 #if DEBUG
-				"http://localhost:5044/register/" + component.User.Id;
-#else
 				"http://52.43.225.251/register/" + component.User.Id;
+#else
+				"http://xa.ivao.aero/register/" + component.User.Id;
 #endif
 
 			try
@@ -172,10 +172,6 @@ public class DiscordService
 	{
 		var ivao = _client.Guilds.Single();
 
-		Regex trainer = new(@"\bXA-(T[CA0]|A?DIR)");
-		Regex membership = new(@"\bXA-(M(AC?|C)|A?DIR)");
-		Regex events = new(@"\bXA-(E(AC?|C)|A?DIR)");
-		Regex administrator = new(@"\bXA-(A?WM|WMA\d|A?DIR)");
 		void setFlag(bool set, DiscordRoles flag)
 		{
 			if (set)
@@ -184,10 +180,10 @@ public class DiscordService
 				user.Roles &= ~flag;
 		}
 
-		setFlag(user.Staff is not null && trainer.IsMatch(user.Staff), DiscordRoles.Training);
-		setFlag(user.Staff is not null && membership.IsMatch(user.Staff), DiscordRoles.Membership);
-		setFlag(user.Staff is not null && events.IsMatch(user.Staff), DiscordRoles.Events);
-		setFlag(user.Staff is not null && administrator.IsMatch(user.Staff), DiscordRoles.Administrator);
+		setFlag(user.Staff is not null && TrainerRegex().IsMatch(user.Staff), DiscordRoles.Training);
+		setFlag(user.Staff is not null && MembershipRegex().IsMatch(user.Staff), DiscordRoles.Membership);
+		setFlag(user.Staff is not null && EventsRegex().IsMatch(user.Staff), DiscordRoles.Events);
+		setFlag(user.Staff is not null && AdministratorRegex().IsMatch(user.Staff), DiscordRoles.Administrator);
 
 		bool isMember = (await api.GetCountriesAsync()).SelectMany(c => new[] { c.id, c.divisionId }).Contains(user.Division);
 		setFlag(isMember && !string.IsNullOrEmpty(user.Staff), DiscordRoles.Staff);
@@ -270,10 +266,6 @@ public class DiscordService
 		await _client.DownloadUsersAsync(new[] { ivao });
 		ivao = _client.Guilds.Single();
 
-		Regex trainer = new(@"\bXA-(T[CA0]|A?DIR)");
-		Regex membership = new(@"\bXA-(M(AC?|C)|A?DIR)");
-		Regex events = new(@"\bXA-(E(AC?|C)|A?DIR)");
-		Regex administrator = new(@"\bXA-(A?WM|WMA\d|A?DIR|AOA?C|AOA\d|PRA?C|PRA\d)");
 		static void setFlag(User user, bool set, DiscordRoles flag)
 		{
 			if (set)
@@ -288,10 +280,10 @@ public class DiscordService
 #endif
 			)
 		{
-			setFlag(user, user.Staff is not null && trainer.IsMatch(user.Staff), DiscordRoles.Training);
-			setFlag(user, user.Staff is not null && membership.IsMatch(user.Staff), DiscordRoles.Membership);
-			setFlag(user, user.Staff is not null && events.IsMatch(user.Staff), DiscordRoles.Events);
-			setFlag(user, user.Staff is not null && administrator.IsMatch(user.Staff), DiscordRoles.Administrator);
+			setFlag(user, user.Staff is not null && TrainerRegex().IsMatch(user.Staff), DiscordRoles.Training);
+			setFlag(user, user.Staff is not null && MembershipRegex().IsMatch(user.Staff), DiscordRoles.Membership);
+			setFlag(user, user.Staff is not null && EventsRegex().IsMatch(user.Staff), DiscordRoles.Events);
+			setFlag(user, user.Staff is not null && AdministratorRegex().IsMatch(user.Staff), DiscordRoles.Administrator);
 
 			bool isMember = (await api.GetCountriesAsync()).SelectMany(c => new[] { c.id, c.divisionId }).Contains(user.Division);
 			setFlag(user, isMember && !string.IsNullOrEmpty(user.Staff), DiscordRoles.Staff);
@@ -567,7 +559,9 @@ public class DiscordService
 					await UpdateEventChannelsAsync(context);
 				}
 
+#pragma warning disable SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 				Regex trainerExaminerCallsign = new(@"^[A-Z]{4}_[XT]_(TWR|APP|CTR)$", RegexOptions.ExplicitCapture | RegexOptions.Compiled);
+#pragma warning restore SYSLIB1045 // Convert to 'GeneratedRegexAttribute'.
 
 				async Task whazzup_ConnectedAsync(ATC controller)
 				{
@@ -672,11 +666,10 @@ public class DiscordService
 			prioritySpeaker: PermValue.Allow
 		);
 
-		OverwritePermissions adminPerms = new((1 << 3) | adminAdditions.AllowValue | writePerms.AllowValue, 0);
+		OverwritePermissions adminPerms = new(1 << 3 | adminAdditions.AllowValue | writePerms.AllowValue, 0);
 
 		Dictionary<string, (ulong Id, PermissionTarget Target)> targets = new();
 		foreach (var p in perms.Read.Concat(perms.Write).Concat(perms.Admin))
-		{
 			if (p == "*")
 				targets.TryAdd(p, (ivao.EveryoneRole.Id, PermissionTarget.Role));
 			else if (ulong.TryParse(p, out ulong rid) && ivao.GetRole(rid) is SocketRole sr1)
@@ -689,7 +682,6 @@ public class DiscordService
 				targets.TryAdd(p, (su2.Id, PermissionTarget.User));
 			else
 				Console.Error.WriteLine("Unknown role/user " + p);
-		}
 
 		yield return new Overwrite(ivao.EveryoneRole.Id, PermissionTarget.Role, new(viewChannel: PermValue.Deny));
 
@@ -787,7 +779,7 @@ public class DiscordService
 
 			// Delete any unwanted channels
 			string[] catNames = category.Channels.Select(cc => cc.Name).ToArray();
-			foreach (var channel in scc.Channels.Where(c => !catNames.Contains(c.Name) || (c is SocketTextChannel && category.Channels.First(cc => cc.Name == c.Name).Voice) || (c is SocketVoiceChannel && !category.Channels.First(cc => cc.Name == c.Name).Voice)))
+			foreach (var channel in scc.Channels.Where(c => !catNames.Contains(c.Name) || c is SocketTextChannel && category.Channels.First(cc => cc.Name == c.Name).Voice || c is SocketVoiceChannel && !category.Channels.First(cc => cc.Name == c.Name).Voice))
 				await channel.DeleteAsync();
 
 			foreach (var channel in category.Channels
@@ -795,16 +787,14 @@ public class DiscordService
 				.Select(c => c with { Name = "[TEST] " + c.Name })
 #endif
 				)
-			{
 				if (channel.Voice)
 				{
 					if (FindVoiceChannelByName(channel.Name) is not SocketVoiceChannel svc)
 					{
 						var rvc = await ivao.CreateVoiceChannelAsync(channel.Name, vcp => vcp.CategoryId = new(scc.Id));
 						do
-						{
 							svc = ivao.GetVoiceChannel(rvc.Id);
-						} while (svc is null);
+						while (svc is null);
 					}
 
 					await svc.SyncPermissionsAsync();
@@ -816,9 +806,8 @@ public class DiscordService
 					{
 						var rtc = await ivao.CreateTextChannelAsync(channel.Name, tcp => tcp.CategoryId = new(scc.Id));
 						do
-						{
 							stc = ivao.GetTextChannel(rtc.Id);
-						} while (stc is null);
+						while (stc is null);
 					}
 
 					await stc.ModifyAsync(tcp => { tcp.PermissionOverwrites = new(GetOverwrites(ivao, channel.Permissions)); tcp.CategoryId = new(scc.Id); });
@@ -832,7 +821,6 @@ public class DiscordService
 							await stc.SendMessageAsync(msg);
 					}
 				}
-			}
 		}
 	}
 
@@ -941,11 +929,18 @@ public class DiscordService
 	private Task LogAsync(LogMessage msg)
 	{
 		lock (LOG_FILE)
-		{
 			File.AppendAllLines(LOG_FILE, new[] { msg.ToString() + Environment.NewLine });
-		}
 		return Task.CompletedTask;
 	}
+
+	[GeneratedRegex("\\bXA-(T[CA0]|A?DIR)")]
+	private static partial Regex TrainerRegex();
+	[GeneratedRegex("\\bXA-(M(AC?|C)|A?DIR)")]
+	private static partial Regex MembershipRegex();
+	[GeneratedRegex("\\bXA-(E(AC?|C)|A?DIR)")]
+	private static partial Regex EventsRegex();
+	[GeneratedRegex("\\bXA-(A?WM|WMA\\d|A?DIR)")]
+	private static partial Regex AdministratorRegex();
 }
 
 internal record DiscordConfigCategory
