@@ -116,11 +116,12 @@
 </div>
 
 @{
-	if (Strip != origStrip)
+	if (origStrip is not null && Strip != origStrip)
 		StripUpdated(Strip);
 }
 
 @code {
+#pragma warning disable CS8618
 	[Parameter]
 	public Action<Strip> SetSelected { get; set; }
 
@@ -135,6 +136,7 @@
 
 	[Parameter]
 	public OccStrips OccStrips { get; set; }
+#pragma warning restore CS8618
 
 	[Parameter]
 	public bool Authenticated { get; set; } = false;
@@ -253,7 +255,7 @@
 		DatalinkRequest = null;
 	}
 
-	private Strip origStrip;
+	private Strip? origStrip;
 
 	protected override void OnParametersSet()
 	{
