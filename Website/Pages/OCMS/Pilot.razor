@@ -116,9 +116,9 @@
 
 @code
 {
-	string? _connectedCallsign = "ACA813";
+	string? _connectedCallsign = null;
 
-	DatalinkUpdateRequest? _lastRequest = new(("40/20", new("0800")), 360, .72m, ("41/30", new("0830")), "42/40");
+	DatalinkUpdateRequest? _lastRequest = null;
 	DateTime _lastRequestTime = DateTime.MinValue;
 	bool _lastRequestAccepted = false;
 	string? _lastFailureReason = null;
