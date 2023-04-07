@@ -122,6 +122,7 @@
 				return;
 
 			_selectedFlightStrip.Route = _selectedFlightStrip.Route.GetAltered(value.Split());
+			StripChanged(_selectedFlightStrip);
 		}
 	}
 
