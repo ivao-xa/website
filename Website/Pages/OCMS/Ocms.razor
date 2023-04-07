@@ -123,6 +123,7 @@
 
 			_selectedFlightStrip.Route = _selectedFlightStrip.Route.GetAltered(value.Split());
 			StripChanged(_selectedFlightStrip);
+			_ = InvokeAsync(StateHasChanged);
 		}
 	}
 

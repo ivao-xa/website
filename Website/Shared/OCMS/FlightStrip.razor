@@ -13,7 +13,7 @@
 			<span class="input-group-text p-1">FL</span>
 			@if (DatalinkRequest is null || !Authenticated)
 			{
-				<input type="number" @bind="Strip.FlightLevel" class="form-control p-1" step="10" disabled="@(!Authenticated)" />
+				<input type="number" @bind="flightLevel" class="form-control p-1" step="10" disabled="@(!Authenticated)" />
 			}
 			else
 			{
@@ -25,7 +25,7 @@
 			<span class="input-group-text p-1">M</span>
 			@if (DatalinkRequest is null || !Authenticated)
 			{
-				<input type="number" @bind="@Strip.Speed" class="form-control p-1" step="0.01" disabled="@(!Authenticated)" />
+				<input type="number" @bind="machNumber" class="form-control p-1" step="0.01" disabled="@(!Authenticated)" />
 			}
 			else
 			{
@@ -121,7 +121,7 @@
 }
 
 @code {
-#pragma warning disable CS8618
+	#pragma warning disable CS8618
 	[Parameter]
 	public Action<Strip> SetSelected { get; set; }
 
@@ -151,6 +151,36 @@
 	#region Hack to make the bindings work
 	string[] fixNames = new string[4];
 	Time?[] fixTimes = new Time?[4];
+
+	int flightLevel
+	{
+		get => Strip.FlightLevel;
+
+		set
+		{
+			if (!Authenticated || value is < 50 or > 999)
+				return;
+
+			Strip.FlightLevel = value;
+			StripUpdated.Invoke(Strip);
+			_ = InvokeAsync(StateHasChanged);
+		}
+	}
+
+	decimal machNumber
+	{
+		get => Strip.Speed;
+
+		set
+		{
+			if (!Authenticated || value is <= 0 or > 3)
+				return;
+
+			Strip.Speed = value;
+			StripUpdated.Invoke(Strip);
+			_ = InvokeAsync(StateHasChanged);
+		}
+	}
 
 	string time0
 	{
