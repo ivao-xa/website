@@ -109,7 +109,7 @@
 		}
 	</div>
 
-	@if (DatalinkRequest is not null)
+	@if (DatalinkRequest is not null && Authenticated)
 	{
 		<button class="btn btn-success p-1 m-1 w-auto" @onclick="DatalinkAccept" type="button">✓</button>
 	}

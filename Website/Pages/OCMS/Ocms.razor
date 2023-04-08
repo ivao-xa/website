@@ -34,7 +34,7 @@
 					</div>
 					@foreach (var strip in OccStrips.Strips.Where(s => _pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 					{
-						<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Remove(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
+						<FlightStrip Strip="strip" Pinned="Unpin" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 					}
 				</div>
 			}
@@ -51,7 +51,7 @@
 					</div>
 					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track && !_pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 					{
-						<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Add(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
+						<FlightStrip Strip="strip" Pinned="Pin" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 					}
 				</div>
 			}
@@ -63,7 +63,7 @@
 				</div>
 				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null && !_pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 				{
-					<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Add(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
+					<FlightStrip Strip="strip" Pinned="Pin" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 				}
 			</div>
 			<div class="flex-fill" />
@@ -84,7 +84,7 @@
 					</div>
 					@foreach (var strip in OccStrips.Strips.Where(s => _pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 					{
-						<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Remove(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
+						<FlightStrip Strip="strip" Pinned="Unpin" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 					}
 				</div>
 			}
@@ -101,7 +101,7 @@
 					</div>
 					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track && !_pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 					{
-						<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Add(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
+						<FlightStrip Strip="strip" Pinned="Pin" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 					}
 				</div>
 			}
@@ -113,7 +113,7 @@
 				</div>
 				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null && !_pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 				{
-					<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Add(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
+					<FlightStrip Strip="strip" Pinned="Pin" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 				}
 			</div>
 			<div class="flex-fill" />
@@ -206,4 +206,16 @@
 
 	private ATC? GetAuthed(User user) =>
 		Whazzup.ConnectedControllers.FirstOrDefault(atc => atc.UserId == user.Vid);
+
+	private void Pin(Strip strip)
+	{
+		if (_pinnedStrips.Add(strip.Callsign))
+			StateHasChanged();
+	}
+
+	private void Unpin(Strip strip)
+	{
+		if (_pinnedStrips.Remove(strip.Callsign))
+			StateHasChanged();
+	}
 }
