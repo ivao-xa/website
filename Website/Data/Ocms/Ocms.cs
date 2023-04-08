@@ -526,8 +526,8 @@ public partial class OccStrips : IDisposable
 	private readonly HttpClient _httpClient;
 	private readonly Task _updater;
 	private readonly CancellationTokenSource _killToken;
+	private readonly Queue<Dictionary<char, string[]>> _natTracks = new();
 	private FlightStrip[] _lastWhazzupStrips = Array.Empty<FlightStrip>();
-	private Dictionary<char, string[]> _natTracks = new();
 	private DateTime _natTracksUpdated = DateTime.MinValue;
 
 	public OccStrips(WhazzupService whazzup, HttpClient httpClient)
@@ -562,7 +562,10 @@ public partial class OccStrips : IDisposable
 					newTracks.Add(m.Groups[1].Value.Single(), m.Value[2..].Split());
 
 				_natTracks.Clear();
-				_natTracks = newTracks;
+				_natTracks.Enqueue(newTracks);
+
+				if (_natTracks.Count > 6)
+					_natTracks.Dequeue();
 			}
 
 			var feed = await _whazzup.GetFeedAsync();
@@ -594,7 +597,7 @@ public partial class OccStrips : IDisposable
 						fs.Route.Any(ft => GetOccFixPosition(ft.Fix) is not null)
 					).Select(fs =>
 					{
-						fs.Track = _natTracks.FirstOrDefault(kvp => OccPosRegex().Replace(fs.Route.ToString(), @"$1/$2").Contains(string.Join(' ', kvp.Value))).Key;
+						fs.Track = _natTracks.Peek().FirstOrDefault(kvp => OccPosRegex().Replace(fs.Route.ToString(), @"$1/$2").Contains(string.Join(' ', kvp.Value))).Key;
 
 						if (fs.Track == '\0')
 							fs.Track = null;
@@ -610,7 +613,7 @@ public partial class OccStrips : IDisposable
 	}
 
 	public string[]? GetNatTrack(char track) =>
-		_natTracks.TryGetValue(track, out string[]? retval) ? retval : null;
+		_natTracks.Peek().TryGetValue(track, out string[]? retval) ? retval : null;
 
 
 	public static Time Estimate(PilotTrack? lastKnownUpdate, decimal clearedSpeed, (decimal Lat, decimal Lon) fix)

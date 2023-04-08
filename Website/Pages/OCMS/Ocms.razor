@@ -24,9 +24,24 @@
 				<div class="status big color-east" />
 				<b class="text-bg-dark">Eastbound</b>
 			</div>
+
+			@if (OccStrips.Strips.Any(s => _pinnedStrips.Contains(s.Callsign) && s.Route.Eastbound))
+			{
+				<div class="d-flex flex-column track mx-3 mt-2">
+					<div class="mt-2 mb-0 ms-2 d-flex flex-row justify-content-start gap-2">
+						<div class="status color-east" />
+						<span>PINNED</span>
+					</div>
+					@foreach (var strip in OccStrips.Strips.Where(s => _pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
+					{
+						<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Remove(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
+					}
+				</div>
+			}
+
 			@for (char track = 'Z'; track >= 'M'; --track)
 			{
-				if (!OccStrips.Strips.Any(s => s.Track == track))
+				if (!OccStrips.Strips.Any(s => s.Track == track && !_pinnedStrips.Contains(s.Callsign)))
 					continue;
 
 				<div class="d-flex flex-column track mx-3 mt-2">
@@ -34,9 +49,9 @@
 						<div class="status color-east" />
 						<span>TRACK @track</span>
 					</div>
-					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track).OrderBy(s => s.Callsign))
+					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track && !_pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 					{
-						<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+						<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Add(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 					}
 				</div>
 			}
@@ -46,9 +61,9 @@
 					<div class="status color-east" />
 					<span>RANDOM ROUTES</span>
 				</div>
-				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null).OrderBy(s => s.Callsign))
+				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null && !_pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 				{
-					<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+					<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Add(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 				}
 			</div>
 			<div class="flex-fill" />
@@ -59,6 +74,21 @@
 				<div class="status big color-west" />
 				<b class="text-bg-dark">Westbound</b>
 			</div>
+
+			@if (OccStrips.Strips.Any(s => _pinnedStrips.Contains(s.Callsign) && s.Route.Westbound))
+			{
+				<div class="d-flex flex-column track mx-3 mt-2">
+					<div class="mt-2 mb-0 ms-2 d-flex flex-row justify-content-start gap-2">
+						<div class="status color-west" />
+						<span>PINNED</span>
+					</div>
+					@foreach (var strip in OccStrips.Strips.Where(s => _pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
+					{
+						<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Remove(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
+					}
+				</div>
+			}
+
 			@for (char track = 'A'; track <= 'N'; ++track)
 			{
 				if (!OccStrips.Strips.Any(s => s.Track == track))
@@ -69,9 +99,9 @@
 						<div class="status color-west" />
 						<span>TRACK @track</span>
 					</div>
-					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track).OrderBy(s => s.Callsign))
+					@foreach (var strip in OccStrips.Strips.Where(s => s.Track == track && !_pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 					{
-						<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+						<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Add(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 					}
 				</div>
 			}
@@ -81,9 +111,9 @@
 					<div class="status color-west" />
 					<span>RANDOM ROUTES</span>
 				</div>
-				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null).OrderBy(s => s.Callsign))
+				@foreach (var strip in OccStrips.Strips.Where(s => s.Track is null && !_pinnedStrips.Contains(s.Callsign)).OrderBy(s => s.Callsign))
 				{
-					<FlightStrip Strip="@strip" OccStrips="@OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" Authenticated="CheckAuthed(context)" />
+					<FlightStrip Strip="strip" Pinned="s => _pinnedStrips.Add(s.Callsign)" StripUpdated="StripChanged" SetSelected="fs => { _selectedFlightStrip = fs; StateHasChanged(); }" OccStrips="OccStrips" LastUpdate="GetLastTrack(strip.Callsign)" Authenticated="CheckAuthed(context)" />
 				}
 			</div>
 			<div class="flex-fill" />
@@ -111,6 +141,7 @@
 @code {
 	private Strip? _selectedFlightStrip = null;
 	private Dictionary<string, PilotTrack>? _pilotTracks;
+	private readonly HashSet<string> _pinnedStrips = new();
 
 	private string? SelectedRoute
 	{
@@ -122,6 +153,7 @@
 				return;
 
 			_selectedFlightStrip.Route = _selectedFlightStrip.Route.GetAltered(value.Split());
+			_selectedFlightStrip.Route.Modified = true;
 			StripChanged(_selectedFlightStrip);
 			_ = InvokeAsync(StateHasChanged);
 		}

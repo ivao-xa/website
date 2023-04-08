@@ -35,7 +35,7 @@ public class Route : IEnumerable<(string Fix, Time? Time)>
 	public string[] Fixes => _fixes.ToArray();
 	public Time?[] Times => Fixes.Select(f => _times.TryGetValue(f, out Time? r) ? r : null).ToArray();
 
-	public bool Modified { get; private set; } = false;
+	public bool Modified { get; set; } = false;
 
 	private readonly List<string> _fixes = new();
 	private readonly Dictionary<string, Time> _times = new();
@@ -133,7 +133,6 @@ public class Route : IEnumerable<(string Fix, Time? Time)>
 	public void UnsetTime(string fix)
 	{
 		_times.Remove(fix);
-		Modified = _times.Any();
 	}
 
 	public static bool operator ==(Route left, Route right) =>
