@@ -16,11 +16,10 @@
         }
         else
         {
-            _ = RegisterAsync(context);
+            RegisterUser(context);
             <span>
                 Hello, @context.FirstName! Thanks for registering with our Discord! Standby to be redirected to our homepage.
             </span>
-            NavManager.NavigateTo("/", true);
         }
     </ChildContent>
     <Loading>
@@ -34,6 +33,8 @@
     public string SnowflakeStr { get; set; } = "";
 
     private ulong snowflake;
+    private SemaphoreSlim _userSet = new(0);
+    private User? _user;
 
     protected override void OnParametersSet()
     {
@@ -43,21 +44,46 @@
         base.OnParametersSet();
     }
 
-    private async Task RegisterAsync(User user)
+    private void RegisterUser(User user)
     {
         if (snowflake == 0)
             return;
 
-        _ = Discord.SendMessageAsync(user, $"Thanks for registering, your roles are being assigned and your account is being set-up. This can take up to fifteen minutes, we'll ping you when it's done.", 60000);
+        if (_user is null)
+        {
+            _user = user;
+            _userSet.Release();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await _userSet.WaitAsync();
+
+        if (_user is null)
+        {
+            _userSet.Release();
+            return;
+        }
+        
+        var channel = await (await Discord._client.GetUserAsync(_user!.Snowflake!.Value)).CreateDMChannelAsync();
+        await foreach (var i in channel.GetMessagesAsync())
+            foreach (var m in i)
+                await channel.DeleteMessageAsync(m);
+
+        _ = Discord.SendMessageAsync(_user, $"Thanks for registering, your roles are being assigned and your account is being set-up.", 60000);
         var context = await ContextFactory.CreateDbContextAsync();
-        user = context.Users.Find(user.Vid)!;
-        user.Snowflake = snowflake;
+        _user = context.Users.Find(_user.Vid)!;
+        _user.Snowflake = snowflake;
         await context.SaveChangesAsync();
+        NavManager.NavigateTo("/", true);
         StateHasChanged();
         _ = Task.Run(async () =>
         {
-            await Discord.EnforceRolesAsync(user, IvaoApi);
-            await Discord.SendMessageAsync(user, $"Thanks for waiting, {user.FirstName}! You should now have your roles.", 60000);
+            await Discord.EnforceRolesAsync(_user, IvaoApi);
+            _ = Discord.SendMessageAsync(_user, $"Thanks for waiting, {_user.FirstName}! You should now have your roles.", 60000);
+            _user = null;
+            _userSet.Release();
         });
     }
 }

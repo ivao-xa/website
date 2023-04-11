@@ -22,7 +22,7 @@ public class IvaoLoginService
     public async Task<User?> RegisterUserAsync(string token)
     {
         // Retrieve user's data from the IVAO API.
-        _http.Timeout = TimeSpan.FromSeconds(1);
+        _http.Timeout = TimeSpan.FromSeconds(5);
         JsonSerializerOptions options = new() { NumberHandling = JsonNumberHandling.AllowReadingFromString, PropertyNameCaseInsensitive = true };
         if (await _http.GetFromJsonAsync<IvaoLoginData>($"https://login.ivao.aero/api.php?type=json&token={token}", options) is not IvaoLoginData json)
             return null;

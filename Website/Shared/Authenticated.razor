@@ -56,7 +56,7 @@ else if (Loading is not null)
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Only check these things once so we don't get infinite redirects.
-        if (authenticatedUser is not null)
+        if (authenticatedUser is not null || !firstRender)
             return;
 
         Uri url = new(NavManager.Uri);
@@ -91,7 +91,7 @@ else if (Loading is not null)
         if (authenticatedUser is not null && !(await CheckDiscordRoles(authenticatedUser)) && !url.GetLeftPart(UriPartial.Path).Split('/').Contains("register"))
             NavManager.NavigateTo("https://discord.gg/RCYbNx6dbe", true);
         else if (new Uri(NavManager.Uri).GetLeftPart(UriPartial.Path) == url.GetLeftPart(UriPartial.Path))
-            NavManager.NavigateTo(url.GetLeftPart(UriPartial.Path));
+            NavManager.NavigateTo(url.GetLeftPart(UriPartial.Path), replace: true);
 
         await InvokeAsync(StateHasChanged);
         sem.Release();
