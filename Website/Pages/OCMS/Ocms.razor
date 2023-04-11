@@ -12,9 +12,11 @@
 <OccAuthenticated>
 	<div class="row my-3">
 		<div class="col" />
-		<div class="text-center text-bg-success p-1 rounded fs-4 col-1" style="background-color: #38808A;">@(new Time(DateTime.UtcNow.Hour, DateTime.UtcNow.Minute))z</div>
+		<div class="text-center text-white p-1 rounded fs-5 col-1" style="background-color: #38808A;">@(new Time(DateTime.UtcNow.Hour, DateTime.UtcNow.Minute))z</div>
 		<div class="col-1" />
-		<div class="text-center text-bg-@(CheckAuthed(context) ? "warning" : "danger") p-1 rounded fs-4 col-1">@(GetAuthed(context)?.Callsign ?? "Not Connected")</div>
+		<div class="text-center text-bg-success p-1 rounded fs-5 col-1">TMI @OccStrips.TMI</div>
+		<div class="col-1" />
+		<div class="text-center text-bg-@(CheckAuthed(context) ? "warning" : "danger") p-1 rounded fs-5 col-1">@(GetAuthed(context)?.Callsign ?? "Not Connected")</div>
 		<div class="col" />
 	</div>
 

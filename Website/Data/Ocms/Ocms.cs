@@ -521,12 +521,15 @@ public partial class OccStrips : IDisposable
 	}
 
 	public event EventHandler? StripsUpdated = null;
+	public string TMI => _tmis.Any() ? _tmis.Peek() : "";
+
 	private readonly Dictionary<string, FlightStrip> _modifiedStrips = new();
 	private readonly WhazzupService _whazzup;
 	private readonly HttpClient _httpClient;
 	private readonly Task _updater;
 	private readonly CancellationTokenSource _killToken;
 	private readonly Queue<Dictionary<char, string[]>> _natTracks = new();
+	private readonly Queue<string> _tmis = new();
 	private FlightStrip[] _lastWhazzupStrips = Array.Empty<FlightStrip>();
 	private DateTime _natTracksUpdated = DateTime.MinValue;
 
@@ -553,6 +556,8 @@ public partial class OccStrips : IDisposable
 				_natTracksUpdated = DateTime.UtcNow;
 				string pageData = await _httpClient.GetStringAsync(@"https://www.notams.faa.gov/common/nat.html", token);
 
+				string tmi = TmiRegex().Match(pageData).Groups[1].Value;
+
 				for (int cntr = 0; cntr < 3; ++cntr)
 					pageData = pageData[pageData.IndexOf("<tr>")..];
 
@@ -561,11 +566,14 @@ public partial class OccStrips : IDisposable
 				foreach (Match m in TrackRegex().Matches(pageData).Cast<Match>())
 					newTracks.Add(m.Groups[1].Value.Single(), m.Value[2..].Split());
 
-				_natTracks.Clear();
 				_natTracks.Enqueue(newTracks);
+				_tmis.Enqueue(tmi);
 
-				if (_natTracks.Count > 6)
+				while (_natTracks.Count > 6)
+				{
+					_tmis.Dequeue();
 					_natTracks.Dequeue();
+				}
 			}
 
 			var feed = await _whazzup.GetFeedAsync();
@@ -705,4 +713,7 @@ public partial class OccStrips : IDisposable
 
 	[GeneratedRegex(@"^([A-Z])(?: ([^ \r\n]+))+$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
 	private static partial Regex TrackRegex();
+
+	[GeneratedRegex(@"TMI IS (\d+)", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+	private static partial Regex TmiRegex();
 }
