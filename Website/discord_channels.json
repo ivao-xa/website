@@ -5,14 +5,14 @@
 			{
 				"Name": "verify",
 				"Permissions": {
-					"Deny": ["linked"],
-					"Read": ["administrator"]
+					"Deny": [ "linked" ],
+					"Read": [ "administrator" ]
 				}
 			},
 			{
 				"Name": "rules",
 				"Permissions": {
-					"Read": ["linked"]
+					"Read": [ "linked" ]
 				},
 				"Messages": [
 					"**Divisional Discord Rules**\n\n**1)** Be respectful to everyone.\n**2)** If you are asked by a moderator to stop doing something, stop.\n**3)** Do not be disruptive. This includes hijacking threads, voice channels or overriding a conversation.\n**4)** NSFW & NSFL content is not permitted. This is a ZERO Tolerance Policy.\n**5)** Political and religious topics are not permitted.\n**6)** Please keep your live-streams aviation related.\n**7)** The use of self-bots is not permitted. If you think a bot would benefit our server, speak to a staff member.\n**8)** No trolling, spamming, or hate speech.\n**9)** A staff member's decision is final.\n\n**For appeals of a Discord ban, please email xa-hq@ivao.aero**"
@@ -153,13 +153,103 @@
 		}
 	},
 	{
-		"Name": "",
+		"Name": "DEPARTMENTS",
 		"Channels": [
 			{
-				"Name": "",
+				"Name": "atc-ops",
+				"Permissions": {
+					"Write": [ "linked" ]
+				}
+			},
+			{
+				"Name": "flight-ops",
+				"Permissions": {
+					"Write": [ "linked" ]
+				}
+			},
+			{
+				"Name": "events",
+				"Permissions": {
+					"Write": [ "linked" ],
+					"Admin": [ "events" ]
+				}
+			},
+			{
+				"Name": "membership",
+				"Permissions": {
+					"Write": [ "linked" ],
+					"Admin": [ "membership" ]
+				}
+			},
+			{
+				"Name": "spec-ops",
+				"Permissions": {
+					"Write": [ "linked" ]
+				}
+			},
+			{
+				"Name": "training",
+				"Permissions": {
+					"Write": [ "linked" ],
+					"Admin":  [ "training" ]
+				}
+			}
+		],
+		"Permissions": {
+			"Read": [],
+			"Write": []
+		}
+	},
+	{
+		"Name": "STAFF",
+		"Channels": [
+			{
+				"Name": "staff-all",
 				"Permissions": {
 					"Read": [],
-					"Write": []
+					"Write": [ "staff" ]
+				}
+			},
+			{
+				"Name": "training",
+				"Permissions": {
+					"Read": [],
+					"Write": [ "training" ]
+				}
+			},
+			{
+				"Name": "atc-ops",
+				"Permissions": {
+					"Read": [],
+					"Write": [ "administrator" ]
+				}
+			},
+			{
+				"Name": "events",
+				"Permissions": {
+					"Read": [],
+					"Write": [ "events" ]
+				}
+			},
+			{
+				"Name": "events",
+				"Permissions": {
+					"Read": [],
+					"Write": [ "events" ]
+				}
+			},
+			{
+				"Name": "membership",
+				"Permissions": {
+					"Read": [],
+					"Write": [ "membership" ]
+				}
+			},
+			{
+				"Name": "off-topic",
+				"Permissions": {
+					"Read": [],
+					"Write": [ "staff" ]
 				}
 			}
 		],
