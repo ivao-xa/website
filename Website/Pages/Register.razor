@@ -68,11 +68,6 @@
             _userSet.Release();
             return;
         }
-        
-        var channel = await (await Discord._client.GetUserAsync(_user!.Snowflake!.Value)).CreateDMChannelAsync();
-        await foreach (var i in channel.GetMessagesAsync())
-            foreach (var m in i)
-                await channel.DeleteMessageAsync(m);
 
         _ = Discord.SendMessageAsync(_user, $"Thanks for registering, your roles are being assigned and your account is being set-up.", 60000);
         var context = await ContextFactory.CreateDbContextAsync();

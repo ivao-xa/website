@@ -69,7 +69,7 @@ public class IvaoLoginService
                 Division = json.Division,
                 Country = json.Country,
                 Staff = json.Staff is null ? null : string.Join(':', json.Staff.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)),
-                FaaChecked = json.Country != "CA",
+                FaaChecked = new[] { "US", "XA" }.Contains(json.Country),
                 NavCanChecked = json.Country == "CA"
             };
 
