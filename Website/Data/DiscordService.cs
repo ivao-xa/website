@@ -143,7 +143,7 @@ public partial class DiscordService
 				return;
 			else if (activatedUsers.Contains(component.User.Id))
 			{
-				await component.RespondAsync("You have already pressed this button. If you are still having issues after five minutes, ping an administrator.");
+				await component.RespondAsync("You have already pressed this button. If you are still having issues after five minutes, ping an administrator.", ephemeral: true);
 				return;
 			}
 			else
