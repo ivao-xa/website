@@ -136,18 +136,10 @@ public partial class DiscordService
 		if (FindTextChannelByName("verify") is not SocketTextChannel verifyChannel)
 			return;
 
-		HashSet<ulong> activatedUsers = new();
 		async Task buttonClicked(SocketMessageComponent component)
 		{
 			if (component.Data.Type != ComponentType.Button || component.Data.CustomId != "connect")
 				return;
-			else if (activatedUsers.Contains(component.User.Id))
-			{
-				await component.RespondAsync("You have already pressed this button. If you are still having issues after five minutes, ping an administrator.", ephemeral: true);
-				return;
-			}
-			else
-				activatedUsers.Add(component.User.Id);
 
 			await component.DeferAsync();
 
@@ -381,7 +373,7 @@ public partial class DiscordService
 
 		string[] sarkySalutations = new[] { "Hark", "Behold" };
 
-		await museum.SendMessageAsync($"{sarkySalutations[Random.Shared.Next(sarkySalutations.Length)]}! {message} on this day, {DateTime.UtcNow.Month} {DateTime.UtcNow.Day} at {DateTime.UtcNow.ToLongTimeString()} in the year of our Lord {DateTime.UtcNow.Year}.");
+		await museum.SendMessageAsync($"{sarkySalutations[Random.Shared.Next(sarkySalutations.Length)]}! {message} on this day, {DateTime.UtcNow.ToString("MMMM")} {DateTime.UtcNow.Day} at {DateTime.UtcNow.ToLongTimeString()} in the year of our Lord {DateTime.UtcNow.Year}.");
 	}
 
 	private async Task LaunchAsync(string token, WhazzupService whazzup)
