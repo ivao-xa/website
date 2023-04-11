@@ -51,7 +51,7 @@ else if (Loading is not null)
     public DiscordRoles RequiredRoles { get; set; } = (DiscordRoles)0;
 
     User? authenticatedUser = null;
-    static ConcurrentDictionary<string, ManualResetEventSlim> _pendingTokens = new();
+    static ConcurrentDictionary<string, SemaphoreSlim> _pendingTokens = new();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -77,12 +77,13 @@ else if (Loading is not null)
 
         if (_pendingTokens.TryGetValue(token, out var ss))
         {
-            ss.Wait();
+            await ss.WaitAsync();
+            ss.Release();
             return;
         }
 
-        ManualResetEventSlim mres = new();
-        _pendingTokens.TryAdd(token, mres);
+        SemaphoreSlim sem = new(0);
+        _pendingTokens.TryAdd(token, sem);
 
         await LoginSrv.RegisterUserAsync(token);
         authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
@@ -93,7 +94,7 @@ else if (Loading is not null)
             NavManager.NavigateTo(url.GetLeftPart(UriPartial.Path));
 
         await InvokeAsync(StateHasChanged);
-        mres.Set();
+        sem.Release();
     }
 
     /// <summary>Updates and enforces a user's discord roles, obtaining the snowflake if one is not already known.</summary>

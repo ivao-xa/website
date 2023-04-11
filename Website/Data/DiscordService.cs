@@ -597,7 +597,14 @@ public partial class DiscordService
 						if (trackedControllers[controller] is User u && u.Snowflake is ulong s)
 							admins.Add(s.ToString());
 
-						await ivao.CreateVoiceChannelAsync(controller.Callsign, vcp => { vcp.CategoryId = onlineCategory.Id; vcp.PermissionOverwrites = new(GetOverwrites(ivao, new() { Deny = new[] { "*" }, Read = Array.Empty<string>(), Write = new[] { "member" }, Admin = admins.ToArray() })); });
+                        if (ivao.Users.Count < 100)
+                        {
+                            _client.PurgeUserCache();
+                            await _client.DownloadUsersAsync(_client.Guilds);
+							ivao = _client.Guilds.Single();
+                        }
+
+                        await ivao.CreateVoiceChannelAsync(controller.Callsign, vcp => { vcp.CategoryId = onlineCategory.Id; vcp.PermissionOverwrites = new(GetOverwrites(ivao, new() { Deny = new[] { "*" }, Read = Array.Empty<string>(), Write = new[] { "member" }, Admin = admins.ToArray() })); });
 					}
 					await updateAsync();
 				}
@@ -700,6 +707,7 @@ public partial class DiscordService
 		OverwritePermissions adminPerms = new(1 << 3 | adminAdditions.AllowValue | writePerms.AllowValue, 0);
 
 		Dictionary<string, (ulong Id, PermissionTarget Target)> targets = new();
+
 		foreach (var p in perms.Read.Concat(perms.Write).Concat(perms.Admin))
 			if (p == "*")
 				targets.TryAdd(p, (ivao.EveryoneRole.Id, PermissionTarget.Role));
@@ -805,8 +813,15 @@ public partial class DiscordService
 				scc = tmp;
 			}
 
-			// Enforce category permissions
-			await scc.ModifyAsync(gcp => gcp.PermissionOverwrites = new(GetOverwrites(ivao, category.Permissions)));
+            if (ivao.Users.Count < 100)
+            {
+                _client.PurgeUserCache();
+                await _client.DownloadUsersAsync(_client.Guilds);
+				ivao = _client.Guilds.Single();
+            }
+
+            // Enforce category permissions
+            await scc.ModifyAsync(gcp => gcp.PermissionOverwrites = new(GetOverwrites(ivao, category.Permissions)));
 
 			// Delete any unwanted channels
 			string[] catNames = category.Channels.Select(cc => cc.Name).ToArray();
