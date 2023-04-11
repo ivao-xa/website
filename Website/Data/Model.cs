@@ -32,6 +32,7 @@ public class User
 	public DateTime LastControlTime { get; set; } = DateTime.MinValue;
 	public DateTime LastPilotTime { get; set; } = DateTime.MinValue;
 
+	public string? Nickname { get; set; }
 	public string? FirstName { get; set; }
 	public string? LastName { get; set; }
 	public AtcRating? RatingAtc { get; set; }
@@ -46,7 +47,10 @@ public class User
 	[NotMapped]
 	public string Mention => Snowflake is ulong l ? $"<@{l}>" : Vid.ToString("000000");
 
-	public override string ToString() => $"{Vid} ({FirstName} {LastName})";
+	[NotMapped]
+	public string Name => Nickname ?? FirstName ?? "";
+
+	public override string ToString() => $"{Vid} ({Nickname ?? FirstName} {LastName})";
 }
 
 [Flags]

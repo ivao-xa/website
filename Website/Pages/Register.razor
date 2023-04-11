@@ -18,7 +18,7 @@
         {
             RegisterUser(context);
             <span>
-                Hello, @context.FirstName! Thanks for registering with our Discord! Standby to be redirected to our homepage.
+                Hello, @context.Name! Thanks for registering with our Discord! Standby to be redirected to our homepage.
             </span>
         }
     </ChildContent>
@@ -79,7 +79,7 @@
         _ = Task.Run(async () =>
         {
             await Discord.EnforceRolesAsync(_user, IvaoApi);
-            _ = Discord.SendMessageAsync(_user, $"Thanks for waiting, {_user.FirstName}! You should now have your roles.", 60000);
+            _ = Discord.SendMessageAsync(_user, $"Thanks for waiting, {_user.Name}! You should now have your roles.", 60000);
             _user = null;
             _userSet.Release();
         });

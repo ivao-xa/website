@@ -250,9 +250,9 @@ public partial class DiscordService
 			gup.Roles = new(roleToSnowflakes(user.Roles, user.RatingAtc, user.RatingPilot));
 
 			if (string.IsNullOrWhiteSpace(user.Staff))
-				gup.Nickname = new($"{user.FirstName} | {user.Vid}");
+				gup.Nickname = new($"{user.Name} | {user.Vid}");
 			else
-				gup.Nickname = new($"{user.FirstName} | {staffPos(user.Staff.Split(':'))}");
+				gup.Nickname = new($"{user.Name} | {staffPos(user.Staff.Split(':'))}");
 		});
 #endif
 
@@ -550,11 +550,30 @@ public partial class DiscordService
 					{
 						unlinkContext.Users.Remove(ulU);
 						await unlinkContext.SaveChangesAsync();
-						_ = Enshrine($"{ulU.FirstName} ({ulU.Vid}/{ulU.Mention}) was unlinked by {executor.FirstName}");
+						_ = Enshrine($"{ulU.Name} ({ulU.Vid}/{ulU.Mention}) was unlinked by {executor.Name}");
 					}
 
 					_ = unlinkUser.RemoveRolesAsync(roleToSnowflakes(DiscordRoles.All).Distinct());
 					await command.ModifyOriginalResponseAsync(r => r.Content = "Done! They'll now have to reverify.");
+					break;
+
+				case "nick":
+					if (getOption("user").Value is not SocketGuildUser sgu || getOption("nick").Value is not string nick)
+						break;
+
+					var nickContext = await _webContextFactory.CreateDbContextAsync();
+					if (nickContext.Users.SingleOrDefault(u => u.Snowflake == command.User.Id) is not User nickAdmin || !nickAdmin.Roles.HasFlag(DiscordRoles.Membership))
+					{
+						await command.ModifyOriginalResponseAsync(r => r.Content = "You don't have the necessary permissions.");
+						break;
+					}
+
+					if (nickContext.Users.SingleOrDefault(u => u.Snowflake == sgu.Id) is not User u)
+						break;
+
+					u.Nickname = nick;
+					_ = nickContext.SaveChangesAsync();
+					await command.ModifyOriginalResponseAsync(r => r.Content = "All done!");
 					break;
 
 				default:
@@ -592,10 +611,12 @@ public partial class DiscordService
 
 				case "sandbag2":
 					_ = victim.SetTimeOutAsync(TimeSpan.FromHours(1));
+					await Enshrine($"{victim.Mention} was timed out for one hour by {admin.Name}");
 					break;
 
 				case "sandbag3":
 					_ = victim.SetTimeOutAsync(TimeSpan.FromDays(1));
+					await Enshrine($"{victim.Mention} was timed out for a whole day by {admin.Name}");
 					break;
 			}
 		};
@@ -746,6 +767,17 @@ public partial class DiscordService
 #endif
 				.WithDescription("Unlink a user and force them to reverify.")
 				.AddOption("user", ApplicationCommandOptionType.User, "The user to unlink", true)
+				.Build());
+
+			await ivao.CreateApplicationCommandAsync(new SlashCommandBuilder()
+#if DEBUG
+				.WithName("debug-nick")
+#else
+				.WithName("nick")
+#endif
+				.WithDescription("Nicknames a user.")
+				.AddOption("user", ApplicationCommandOptionType.User, "The user to nickname", true)
+				.AddOption("nick", ApplicationCommandOptionType.String, "The user's new nickname", true)
 				.Build());
 
 			await RequestSnowflakeAsync();
@@ -988,7 +1020,7 @@ public partial class DiscordService
 			if (trainee is null || trainer is null || trainee.Snowflake is null || trainer.Snowflake is null)
 				continue;
 
-			string channelName = $"{trainee.FirstName}'s {ex.Name}";
+			string channelName = $"{trainee.Name}'s {ex.Name}";
 			if (knownChannels.Contains(channelName))
 			{
 				knownChannels.Remove(channelName);
