@@ -55,7 +55,7 @@ else if (Loading is not null)
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Only check these things once so we don't get infinite redirects.
-        if (authenticatedUser is not null)
+        if (authenticatedUser is not null || !firstRender)
             return;
 
         Uri url = new(NavManager.Uri);
