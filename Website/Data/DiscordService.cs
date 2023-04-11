@@ -160,11 +160,11 @@ public partial class DiscordService
 
 			try
 			{
-				var msg = await SendMessageAsync(component.User, $"{component.User.Mention}, go to {reglink} to sign in through the website and get your discord roles!", 60000);
+				_ = SendMessageAsync(component.User, $"{component.User.Mention}, go to {reglink} to sign in through the website and get your discord roles!", 60000);
 			}
 			catch
 			{
-				var msg = await SendMessageAsync(component.Channel.Id, $"{component.User.Mention}, go to {reglink} to sign in through the website and get your discord roles!", 5000);
+				_ = SendMessageAsync(component.Channel.Id, $"{component.User.Mention}, go to {reglink} to sign in through the website and get your discord roles!", 5000);
 			}
 		}
 

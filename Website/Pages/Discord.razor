@@ -6,41 +6,38 @@
 @inject IDbContextFactory<WebsiteContext> ContextFactory
 @inject IvaoApiService Api
 
-<Authenticated RequiredRoles="DiscordRoles.Administrator">
-	<Staff>
-		<div class="d-flex flex-column w-100 mt-2">
-			<div class="m-auto d-flex flex-column">
-				<span class="text-center">PM Management</span>
-				<div class="d-flex flex-row">
-					<button class="btn btn-primary m-2" @onclick="() => Ping(context)">Ping Me!</button>
-					<button class="btn btn-danger m-2" @onclick="() => ClearAsync(context)">Clear Chat</button>
-				</div>
-			</div>
-
-			<div class="m-auto d-flex flex-column">
-				<span class="text-center">Server Management</span>
-				<div class="d-flex flex-row">
-					<button class="btn @(enforcing ? "btn-disabled" : "btn-success") m-2" @onclick="EnforceRoles">Enforce ALL Roles</button>
-					<button class="btn @(enforcing ? "btn-disabled" : "btn-success") m-2" @onclick="EnforceConfig">Enforce Server Configuration</button>
-				</div>
-			</div>
-
-			<div class="m-auto w-100 h-auto d-flex flex-column">
-				<span class="text-center">Roles</span>
-				<textarea rows="10" class="m-2" @bind="roleConfig"></textarea>
-			</div>
-
-			<div class="m-auto w-100 h-auto d-flex flex-column">
-				<span class="text-center">Channels</span>
-				<textarea rows="50" class="m-2" @bind="channelConfig"></textarea>
+<Authenticated>
+	<div class="d-flex flex-column w-100 mt-2">
+		<div class="m-auto d-flex flex-column">
+			<span class="text-center">PM Management</span>
+			<div class="d-flex flex-row">
+				<button class="btn btn-primary m-2" @onclick="() => Ping(context)">Ping Me!</button>
+				<button class="btn btn-danger m-2" @onclick="() => ClearAsync(context)">Clear Chat</button>
 			</div>
 		</div>
-	</Staff>
-	<Unauthorized>
-		@{
-			NavManager.NavigateTo("/");
-		}
-	</Unauthorized>
+		<Authenticated RequiredRoles="DiscordRoles.Administrator" Context="_">
+			<Staff>
+
+				<div class="m-auto d-flex flex-column">
+					<span class="text-center">Server Management</span>
+					<div class="d-flex flex-row">
+						<button class="btn @(enforcing ? "btn-disabled" : "btn-success") m-2" @onclick="EnforceRoles">Enforce ALL Roles</button>
+						<button class="btn @(enforcing ? "btn-disabled" : "btn-success") m-2" @onclick="EnforceConfig">Enforce Server Configuration</button>
+					</div>
+				</div>
+
+				<div class="m-auto w-100 h-auto d-flex flex-column">
+					<span class="text-center">Roles</span>
+					<textarea rows="10" class="m-2" @bind="roleConfig"></textarea>
+				</div>
+
+				<div class="m-auto w-100 h-auto d-flex flex-column">
+					<span class="text-center">Channels</span>
+					<textarea rows="50" class="m-2" @bind="channelConfig"></textarea>
+				</div>
+			</Staff>
+		</Authenticated>
+	</div>
 </Authenticated>
 
 @code {
