@@ -197,6 +197,9 @@ namespace Website.Migrations
                     b.Property<bool>("NavCanChecked")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("Nickname")
+                        .HasColumnType("longtext");
+
                     b.Property<int?>("RatingAtc")
                         .HasColumnType("int");
 
