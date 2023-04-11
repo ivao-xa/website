@@ -373,7 +373,7 @@ public partial class DiscordService
 
 		string[] sarkySalutations = new[] { "Hark", "Behold" };
 
-		await museum.SendMessageAsync($"{sarkySalutations[Random.Shared.Next(sarkySalutations.Length)]}! {message} on this day, {DateTime.UtcNow.ToString("MMMM")} {DateTime.UtcNow.Day} at {DateTime.UtcNow.ToLongTimeString()} in the year of our Lord {DateTime.UtcNow.Year}.");
+		await museum.SendMessageAsync($"{sarkySalutations[Random.Shared.Next(sarkySalutations.Length)]}! {message} on this day, {DateTime.UtcNow:MMMM} {DateTime.UtcNow.Day} at {DateTime.UtcNow.ToLongTimeString()} in the year of our Lord {DateTime.UtcNow.Year}.");
 	}
 
 	private async Task LaunchAsync(string token, WhazzupService whazzup)
@@ -560,6 +560,19 @@ public partial class DiscordService
 				default:
 					throw new NotImplementedException("Unrecognised Command");
 			}
+		};
+
+		_client.UserBanned += async (user, ivao) =>
+		{
+			await Enshrine($"{user.Mention} was BANNED");
+		};
+
+		_client.MessageDeleted += async (message, channel) =>
+		{
+			if (!message.HasValue)
+				return;
+
+			await Enshrine($"In today's most spendid display of idiocy, {message.Value.Author.Mention} sent a message (`{message.Value.Content}`) in <#{channel.Value.Id}> which was fit only for deletion");
 		};
 
 		_client.Ready += async () =>
