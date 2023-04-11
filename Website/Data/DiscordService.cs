@@ -518,15 +518,22 @@ public partial class DiscordService
 					break;
 
 				case "unlink":
-					var unlinkContext = await _webContextFactory.CreateDbContextAsync();
-					var unlinkUser = (SocketGuildUser)getOption("user").Value;
-					if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == unlinkUser.Id) is User ulU)
+					try
 					{
-						unlinkContext.Users.Remove(ulU);
-						await unlinkContext.SaveChangesAsync();
+						var unlinkContext = await _webContextFactory.CreateDbContextAsync();
+						var unlinkUser = (SocketGuildUser)getOption("user").Value;
+						if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == unlinkUser.Id) is User ulU)
+						{
+							unlinkContext.Users.Remove(ulU);
+							await unlinkContext.SaveChangesAsync();
+						}
+						await unlinkUser.RemoveRolesAsync(unlinkUser.Roles);
+						await command.ModifyOriginalResponseAsync(r => r.Content = "Done! They'll now have to reverify.");
 					}
-					await unlinkUser.RemoveRolesAsync(unlinkUser.Roles);
-					await command.ModifyOriginalResponseAsync(r => r.Content = "Done! They'll now have to reverify.");
+					catch (Exception ex)
+					{
+						await command.ModifyOriginalResponseAsync(r => r.Content = ex.StackTrace ?? ex.Message);
+					}
 					break;
 
 				default:
