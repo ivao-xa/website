@@ -19,7 +19,7 @@ public partial class DiscordService
 		_ = LaunchAsync(config["discord:token"] ?? throw new KeyNotFoundException(), whazzup);
 	}
 
-	internal readonly DiscordSocketClient _client = new(new DiscordSocketConfig() { GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers });
+	internal readonly DiscordSocketClient _client = new(new DiscordSocketConfig() { GatewayIntents = GatewayIntents.AllUnprivileged | GatewayIntents.GuildMembers, MessageCacheSize = 30 });
 	private readonly IDbContextFactory<WebsiteContext> _webContextFactory;
 
 	private readonly Dictionary<DiscordRoles, string> _roles = new()
