@@ -466,8 +466,8 @@ public partial class DiscordService
 					break;
 
 				case "exam":
-					var context = await _webContextFactory.CreateDbContextAsync();
-					var examTrainer = context.Users.FirstOrDefault(u => u.Snowflake == ((SocketGuildUser)command.User).Id);
+					var examContext = await _webContextFactory.CreateDbContextAsync();
+					var examTrainer = examContext.Users.FirstOrDefault(u => u.Snowflake == ((SocketGuildUser)command.User).Id);
 
 					if (examTrainer is null)
 					{
@@ -487,7 +487,7 @@ public partial class DiscordService
 						break;
 					}
 
-					var assignedTrainings = context.TrainingRequests.Where(tr => tr.Trainer == examTrainer.Vid).AsNoTracking().ToArray();
+					var assignedTrainings = examContext.TrainingRequests.Where(tr => tr.Trainer == examTrainer.Vid).AsNoTracking().ToArray();
 					if (assignedTrainings.FirstOrDefault(tr => tr.Trainee == traineeVid) is not TrainingRequest req)
 					{
 						await command.ModifyOriginalResponseAsync(r => r.Content = "You are not the assigned trainer for this channel.");
@@ -505,7 +505,7 @@ public partial class DiscordService
 						break;
 					}
 
-					await context.Exams.AddAsync(new() {
+					await examContext.Exams.AddAsync(new() {
 						Rating = req.AtcRating.Value,
 						Trainer = req.Trainer!.Value,
 						Trainee = req.Trainee,
@@ -517,6 +517,17 @@ public partial class DiscordService
 					await command.ModifyOriginalResponseAsync(r => r.Content = "Done! It's been scheduled.");
 					break;
 
+				case "unlink":
+					var unlinkContext = await _webContextFactory.CreateDbContextAsync();
+					var unlinkUser = (SocketGuildUser)getOption("user").Value;
+					if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == unlinkUser.Id) is User ulU)
+					{
+						unlinkContext.Users.Remove(ulU);
+						await unlinkContext.SaveChangesAsync();
+					}
+					await unlinkUser.RemoveRolesAsync(unlinkUser.Roles);
+					break;
+
 				default:
 					throw new NotImplementedException("Unrecognised Command");
 			}
@@ -524,7 +535,9 @@ public partial class DiscordService
 
 		_client.Ready += async () =>
 		{
+			_client.PurgeUserCache();
 			await EnforceDiscordConfigAsync();
+			await _client.DownloadUsersAsync(_client.Guilds);
 			var ivao = _client.Guilds.Single();
 			await ivao.DeleteApplicationCommandsAsync();
 
@@ -651,6 +664,16 @@ public partial class DiscordService
 				.AddOption("position", ApplicationCommandOptionType.String, "The position on which the exam will take place", true)
 				.Build());
 
+			await ivao.CreateApplicationCommandAsync(new SlashCommandBuilder()
+#if DEBUG
+				.WithName("debug-unlink")
+#else
+				.WithName("unlink")
+#endif
+				.WithDescription("Unlink a user and force them to reverify.")
+				.AddOption("user", ApplicationCommandOptionType.User, "The user to unlink", true)
+				.Build());
+
 			await RequestSnowflakeAsync();
 		};
 
@@ -693,13 +716,13 @@ public partial class DiscordService
 
 		yield return new Overwrite(ivao.EveryoneRole.Id, PermissionTarget.Role, new(viewChannel: PermValue.Deny));
 
-		foreach (var rp in perms.Read.Where(r => targets.ContainsKey(r)))
+		foreach (var rp in perms.Read.Where(targets.ContainsKey))
 			yield return new Overwrite(targets[rp].Id, targets[rp].Target, readPerms);
 
-		foreach (var rp in perms.Write.Where(r => targets.ContainsKey(r)))
+		foreach (var rp in perms.Write.Where(targets.ContainsKey))
 			yield return new Overwrite(targets[rp].Id, targets[rp].Target, writePerms);
 
-		foreach (var rp in perms.Admin.Where(r => targets.ContainsKey(r)))
+		foreach (var rp in perms.Admin.Where(targets.ContainsKey))
 			yield return new Overwrite(targets[rp].Id, targets[rp].Target, adminPerms);
 	}
 

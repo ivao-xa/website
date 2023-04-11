@@ -31,6 +31,18 @@ public class IvaoLoginService
 
 		// Generate or update the user's database entry.
 		var db = await _dbContextFactory.CreateDbContextAsync();
+		if (json.Rating != Rating.Active)
+		{
+			// User has been suspended.
+			if (await db.Users.FindAsync(json.Vid) is User suspendedUser)
+			{
+				db.Users.Remove(suspendedUser);
+				await db.SaveChangesAsync();
+			}
+
+			return null;
+		}
+
 		if (await db.Users.FindAsync(json.Vid) is User u)
 		{
 			// Already an entry. Update it.
@@ -91,4 +103,9 @@ public class IvaoLoginService
 	}
 }
 
-public record IvaoLoginData(int Result, int Vid, string FirstName, string LastName, int Rating, int RatingAtc, int RatingPilot, string Division, string Country, int Hours_Atc, int Hours_Pilot, string Staff) { }
+public record IvaoLoginData(int Result, int Vid, string FirstName, string LastName, Rating Rating, int RatingAtc, int RatingPilot, string Division, string Country, int Hours_Atc, int Hours_Pilot, string Staff) { }
+
+public enum Rating
+{
+	Active = 2
+}
