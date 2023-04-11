@@ -569,10 +569,35 @@ public partial class DiscordService
 
 		_client.MessageDeleted += async (message, channel) =>
 		{
-			if (!message.HasValue)
+			if (!message.HasValue || message.Value.Author is not SocketGuildUser sgu)
 				return;
 
-			await Enshrine($"In today's most spendid display of idiocy, {message.Value.Author.Mention} sent a message (`{message.Value.Content}`) in <#{channel.Value.Id}> which was fit only for deletion");
+			await Enshrine($"In today's most spendid display of idiocy, {sgu.Nickname} sent a message (`{message.Value.Content}`) in <#{channel.Value.Id}> which was fit only for deletion");
+		};
+
+		_client.ReactionAdded += async (message, channel, reaction) =>
+		{
+			if (!message.HasValue || !reaction.User.IsSpecified || message.Value.Author is not SocketGuildUser victim)
+				return;
+
+			var context = await _webContextFactory.CreateDbContextAsync();
+			if (context.Users.SingleOrDefault(u => u.Snowflake == reaction.User.Value.Id) is not User admin || !admin.Roles.HasFlag(DiscordRoles.Staff))
+				return;
+
+			switch (reaction.Emote.Name)
+			{
+				case "sandbag1":
+					_ = victim.SetTimeOutAsync(TimeSpan.FromSeconds(10));
+					break;
+
+				case "sandbag2":
+					_ = victim.SetTimeOutAsync(TimeSpan.FromHours(1));
+					break;
+
+				case "sandbag3":
+					_ = victim.SetTimeOutAsync(TimeSpan.FromDays(1));
+					break;
+			}
 		};
 
 		_client.Ready += async () =>
