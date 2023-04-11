@@ -526,6 +526,7 @@ public partial class DiscordService
 						await unlinkContext.SaveChangesAsync();
 					}
 					await unlinkUser.RemoveRolesAsync(unlinkUser.Roles);
+					await command.ModifyOriginalResponseAsync(r => r.Content = "Done! They'll now have to reverify.");
 					break;
 
 				default:
