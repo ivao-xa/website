@@ -104,15 +104,12 @@
 	User? _currentUser = null;
 	Document[]? _currentDocuments = null;
 
-	protected override void OnInitialized()
-	{
-		_currentGreeting = _greetings[System.Random.Shared.Next(_greetings.Length)];
-	}
-
 	protected override void OnAfterRender(bool firstRender)
 	{
 		if (!firstRender)
 			return;
+
+		_currentGreeting = _greetings[System.Random.Shared.Next(_greetings.Length)];
 
 		Timer t = new(async _ => await UpdateAsync(), null, 0, 5000);
 	}

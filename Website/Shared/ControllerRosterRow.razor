@@ -18,7 +18,7 @@
 					var staffPos = staffPoses[posIdx];
 					bool localStaff = staffPos.Contains('-') && ("KC".Contains(staffPos[0]) || new[] { "XA", "PH", "PA", "TJ" }.Contains(staffPos[0..2]));
 
-					<a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="bg-@(localStaff ? "dark" : "success") badge rounded-pill m@(posIdx == 0 ? "e" : posIdx == staffPoses.Length - 1 ? "b" : "x")-1 text-decoration-none" target="_blank">@staffPos</a>
+					<a href="https://ivao.aero/Member.aspx?ID=@(user.Vid)" class="text-bg-@(localStaff ? "dark" : staffPos.Contains('-') ? "secondary" : "primary") badge rounded-pill m@(posIdx == 0 ? "e" : posIdx == staffPoses.Length - 1 ? "b" : "x")-1 text-decoration-none" target="_blank">@staffPos</a>
 				}
 			}
 		</th>

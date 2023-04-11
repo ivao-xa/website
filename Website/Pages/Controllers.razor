@@ -25,13 +25,46 @@
 		<tbody>
 			<Authenticated>
 				<ChildContent>
-					@foreach (User user in (string.IsNullOrWhiteSpace(context.Staff) ? _users?.Where(u => u.LastControlTime >= minControlTime) : _users) ?? Array.Empty<User>())
+					@foreach (User user in (string.IsNullOrWhiteSpace(context.Staff) ? _users?.Where(u => u.Division == "XA" && u.LastControlTime >= minControlTime) : _users?.Where(u => u.Division == "XA")) ?? Array.Empty<User>())
+					{
+						<ControllerRosterRow user="user" AuthenticationContext="context" Fras="_fras" CheckoutChanged="async (_, _) => { await UpdateUsersAsync(); await InvokeAsync(StateHasChanged); }" />
+					}
+				</ChildContent>
+				<Loading>
+					@foreach (User user in _users?.Where(u => u.Division == "XA" && u.LastControlTime >= minControlTime) ?? Array.Empty<User>())
+					{
+						<ControllerRosterRow user="user" AuthenticationContext="null" Fras="_fras" />
+					}
+				</Loading>
+			</Authenticated>
+		</tbody>
+	</table>
+
+	<h2 class="text-center mt-3">GCA Holders</h2>
+	<table class="table">
+		<thead>
+			<tr>
+				<th scope="col">VID</th>
+				<Authenticated>
+					<th scope="col">Name</th>
+				</Authenticated>
+				<th scope="col">Status</th>
+				<th scope="col" class="text-center">Rating</th>
+				<th scope="col">FAA</th>
+				<th scope="col">NavCan</th>
+				<th scope="col">Endorsements</th>
+			</tr>
+		</thead>
+		<tbody>
+			<Authenticated>
+				<ChildContent>
+					@foreach (User user in (string.IsNullOrWhiteSpace(context.Staff) ? _users?.Where(u => u.Division != "XA" && u.LastControlTime >= minControlTime) : _users?.Where(u => u.Division != "XA")) ?? Array.Empty<User>())
 					{
 						<ControllerRosterRow user="user" AuthenticationContext="context" Fras="_fras" CheckoutChanged="(_, _) => _ = UpdateUsersAsync()" />
 					}
 				</ChildContent>
 				<Loading>
-					@foreach (User user in _users?.Where(u => u.LastControlTime >= minControlTime) ?? Array.Empty<User>())
+					@foreach (User user in _users?.Where(u => u.Division != "XA" && u.LastControlTime >= minControlTime) ?? Array.Empty<User>())
 					{
 						<ControllerRosterRow user="user" AuthenticationContext="null" Fras="_fras" />
 					}

@@ -106,8 +106,11 @@ else if (Loading is not null)
         if (user is null || user.Snowflake is null)
             return false;
 
-        user.Roles = await Discord.EnforceRolesAsync(user, Api);
-        await db.SaveChangesAsync();
+        _ = Task.Run(async () =>
+        {
+            user.Roles = await Discord.EnforceRolesAsync(user, Api);
+            await db.SaveChangesAsync();
+        });
         return true;
     }
 }
