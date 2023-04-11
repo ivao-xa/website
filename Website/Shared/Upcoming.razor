@@ -2,22 +2,22 @@
 @using Website.Data
 @inject IDbContextFactory<WebsiteContext> ContextFactory
 
-<div class="rounded bg-primary bg-gradient p-4 h-100">
-	<table class="table">
+<div class="rounded h-100">
+	<table class="table table-dark table-hover">
 		<thead>
 			<tr>
-				<th scope="col">Event</th>
-				<th scope="col">Date</th>
-				<th scope="col">Time</th>
+				<th scope="col" class="text-center pt-0">Event</th>
+				<th scope="col" class="text-center pt-0">Date</th>
+				<th scope="col" class="text-center pt-0">Time</th>
 			</tr>
 		</thead>
 		<tbody>
 			@foreach (var item in _upcoming ?? Array.Empty<ICalendarItem>())
 			{
 				<tr>
-					<th scope="row">@item.Name</th>
-					<td>@item.Start.ToString("MM/dd")</td>
-					<td>@item.Start.ToString("HH:mm")</td>
+					<th scope="row" class="text-center text-secondary">@item.Name</th>
+					<td class="text-center text-secondary">@(item.Start.ToLongDateString()[..item.Start.ToLongDateString().LastIndexOf(',')])</td>
+					<td class="text-center text-secondary">@item.Start.ToString("HH:mm")z</td>
 				</tr>
 			}
 		</tbody>
@@ -41,7 +41,16 @@
 		try
 		{
 			var trainings = context.Exams.Cast<ICalendarItem>().ToArray();
-			_upcoming = trainings.Concat(context.Events.Cast<ICalendarItem>().ToArray()).OrderByDescending(i => i.Start);
+			Event onlineDay = new() {
+					Name = "XA Online Day",
+					Start =
+						DateTime.UtcNow
+						.AddDays(((DayOfWeek.Thursday + 7) - DateTime.UtcNow.DayOfWeek) % 7) // Move to Thursday
+						.AddMinutes(-(DateTime.UtcNow.Hour * 60 + DateTime.UtcNow.Minute)) // Reset hours/minutes
+						.AddHours(18)   // Starts at 18z
+				};
+
+			_upcoming = trainings.Concat(context.Events.Cast<ICalendarItem>().ToArray()).Append(onlineDay).OrderByDescending(i => i.Start);
 		}
 		catch { }
 		await InvokeAsync(StateHasChanged);
