@@ -258,5 +258,21 @@
 			"Read": [],
 			"Write": []
 		}
+	},
+	{
+		"Name": "STAFF-BASEMENT",
+		"Channels": [
+			{
+				"Name": "museum-of-fail",
+				"Permissions": {
+					"Read": [],
+					"Write":  [ "staff" ]
+				}
+			}
+		],
+		"Permissions": {
+			"Read": [],
+			"Write": []
+		}
 	}
 ]

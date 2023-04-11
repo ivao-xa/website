@@ -374,6 +374,16 @@ public partial class DiscordService
 		await webContext.SaveChangesAsync();
 	}
 
+	private async Task Enshrine(string message)
+	{
+		if (FindTextChannelByName("museum-of-fail") is not SocketTextChannel museum)
+			return;
+
+		string[] sarkySalutations = new[] { "Hark", "Behold" };
+
+		await museum.SendMessageAsync($"{sarkySalutations[Random.Shared.Next(sarkySalutations.Length)]}! {message} on this day, {DateTime.UtcNow.Month} {DateTime.UtcNow.Day} at {DateTime.UtcNow.ToLongTimeString()} in the year of our Lord {DateTime.UtcNow.Year}.");
+	}
+
 	private async Task LaunchAsync(string token, WhazzupService whazzup)
 	{
 		Dictionary<ATC, User?> trackedControllers = new();
@@ -518,41 +528,41 @@ public partial class DiscordService
 					break;
 
 				case "unlink":
-					try
+					var ivao = _client.Guilds.Single();
+					IEnumerable<SocketRole> roleToSnowflakes(DiscordRoles roles, AtcRating? atcRating = null, PilotRating? pilotRating = null)
 					{
-						var ivao = _client.Guilds.Single();
-						IEnumerable<SocketRole> roleToSnowflakes(DiscordRoles roles, AtcRating? atcRating = null, PilotRating? pilotRating = null)
-						{
-							yield return ivao.Roles.Single(r => r.Name.Equals("linked", StringComparison.InvariantCultureIgnoreCase));
+						yield return ivao.Roles.Single(r => r.Name.Equals("linked", StringComparison.InvariantCultureIgnoreCase));
 
-							for (int shift = 0; shift < 64; ++shift)
-								if (roles.HasFlag((DiscordRoles)((ulong)1 << shift)))
-									yield return ivao.Roles.Single(r => r.Name.Equals(_roles[(DiscordRoles)((ulong)1 << shift)], StringComparison.InvariantCulture));
+						for (int shift = 0; shift < 64; ++shift)
+							if (roles.HasFlag((DiscordRoles)((ulong)1 << shift)))
+								yield return ivao.Roles.Single(r => r.Name.Equals(_roles[(DiscordRoles)((ulong)1 << shift)], StringComparison.InvariantCulture));
 
-							yield return ivao.Roles.Single(r => r.Name.Equals("visitor", StringComparison.InvariantCulture));
+						yield return ivao.Roles.Single(r => r.Name.Equals("visitor", StringComparison.InvariantCulture));
 
-							foreach (var ar in Enum.GetValues<AtcRating>())
-								yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((AtcRating)Math.Min((int)ar, (int)AtcRating.SEC)) switch { "SEC" => "SEC+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
+						foreach (var ar in Enum.GetValues<AtcRating>())
+							yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((AtcRating)Math.Min((int)ar, (int)AtcRating.SEC)) switch { "SEC" => "SEC+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
 
-							foreach (var pr in Enum.GetValues<PilotRating>())
-								yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((PilotRating)Math.Min((int)pr, (int)PilotRating.ATP)) switch { "ATP" => "ATP+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
-						}
-
-						var unlinkContext = await _webContextFactory.CreateDbContextAsync();
-						var unlinkUser = (SocketGuildUser)getOption("user").Value;
-						if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == unlinkUser.Id) is User ulU)
-						{
-							unlinkContext.Users.Remove(ulU);
-							await unlinkContext.SaveChangesAsync();
-						}
-
-						_ = unlinkUser.RemoveRolesAsync(roleToSnowflakes(DiscordRoles.All).Distinct());
-						await command.ModifyOriginalResponseAsync(r => r.Content = "Done! They'll now have to reverify.");
+						foreach (var pr in Enum.GetValues<PilotRating>())
+							yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((PilotRating)Math.Min((int)pr, (int)PilotRating.ATP)) switch { "ATP" => "ATP+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
 					}
-					catch (Exception ex)
+
+					var unlinkContext = await _webContextFactory.CreateDbContextAsync();
+					var unlinkUser = (SocketGuildUser)getOption("user").Value;
+					if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == command.User.Id) is not User executor || !executor.Roles.HasFlag(DiscordRoles.Administrator))
 					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = ex.StackTrace ?? ex.Message);
+						await command.ModifyOriginalResponseAsync(r => r.Content = "You don't have the authority to unlink a user. Ping an administrator.");
+						break;
 					}
+
+					if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == unlinkUser.Id) is User ulU)
+					{
+						unlinkContext.Users.Remove(ulU);
+						await unlinkContext.SaveChangesAsync();
+						_ = Enshrine($"{ulU.FirstName} ({ulU.Vid}/{ulU.Mention}) was unlinked by {executor.FirstName}");
+					}
+
+					_ = unlinkUser.RemoveRolesAsync(roleToSnowflakes(DiscordRoles.All).Distinct());
+					await command.ModifyOriginalResponseAsync(r => r.Content = "Done! They'll now have to reverify.");
 					break;
 
 				default:
@@ -624,14 +634,14 @@ public partial class DiscordService
 						if (trackedControllers[controller] is User u && u.Snowflake is ulong s)
 							admins.Add(s.ToString());
 
-                        if (ivao.Users.Count < 100)
-                        {
-                            _client.PurgeUserCache();
-                            await _client.DownloadUsersAsync(_client.Guilds);
+						if (ivao.Users.Count < 100)
+						{
+							_client.PurgeUserCache();
+							await _client.DownloadUsersAsync(_client.Guilds);
 							ivao = _client.Guilds.Single();
-                        }
+						}
 
-                        await ivao.CreateVoiceChannelAsync(controller.Callsign, vcp => { vcp.CategoryId = onlineCategory.Id; vcp.PermissionOverwrites = new(GetOverwrites(ivao, new() { Deny = new[] { "*" }, Read = Array.Empty<string>(), Write = new[] { "member" }, Admin = admins.ToArray() })); });
+						await ivao.CreateVoiceChannelAsync(controller.Callsign, vcp => { vcp.CategoryId = onlineCategory.Id; vcp.PermissionOverwrites = new(GetOverwrites(ivao, new() { Deny = new[] { "*" }, Read = Array.Empty<string>(), Write = new[] { "member" }, Admin = admins.ToArray() })); });
 					}
 					await updateAsync();
 				}
@@ -793,10 +803,12 @@ public partial class DiscordService
 		foreach (SocketRole r in ivao.Roles.Where(r => !roles.Any(nr => nr.Name.TrimEnd("*^".ToCharArray()) == r.Name)))
 			await r.DeleteAsync();
 #endif
+		var oldServerRoles = ivao.Roles.ToArray();
 		foreach ((string Name, uint? Color) in roles)
-			if (!ivao.Roles.Any(r => r.Name == Name.TrimEnd("*^".ToCharArray())))
+		{
+			if (!oldServerRoles.Any(r => r.Name == Name.TrimEnd("*^".ToCharArray())))
 				// Add missing role
-				await ivao.CreateRoleAsync(
+				_ = ivao.CreateRoleAsync(
 					Name.TrimEnd("*^".ToCharArray()),
 					Name.EndsWith('*') ? new GuildPermissions(administrator: true) : GuildPermissions.None,
 					Color is null ? null : new Color(Color.Value),
@@ -805,13 +817,14 @@ public partial class DiscordService
 				);
 			else
 				// Update existing role
-				await ivao.Roles.Single(r => r.Name == Name.TrimEnd("*^".ToCharArray())).ModifyAsync(rp =>
+				_ = oldServerRoles.Single(r => r.Name == Name.TrimEnd("*^".ToCharArray())).ModifyAsync(rp =>
 				{
 					rp.Permissions = new(Name.EndsWith('*') ? new GuildPermissions(administrator: true) : GuildPermissions.None);
 					rp.Color = Color is null ? new() : new(new Color(Color.Value));
 					rp.Hoist = Name.EndsWith('*') || Name.EndsWith('^');
 					rp.Mentionable = true;
 				});
+		}
 
 		DiscordConfigCategory[] config = JsonSerializer.Deserialize<DiscordConfigCategory[]>(File.ReadAllText(CHANNEL_CONF_PATH)) ?? throw new Exception("Invalid Discord config.");
 
@@ -840,20 +853,20 @@ public partial class DiscordService
 				scc = tmp;
 			}
 
-            if (ivao.Users.Count < 100)
-            {
-                _client.PurgeUserCache();
-                await _client.DownloadUsersAsync(_client.Guilds);
+			if (ivao.Users.Count < 100)
+			{
+				_client.PurgeUserCache();
+				await _client.DownloadUsersAsync(_client.Guilds);
 				ivao = _client.Guilds.Single();
-            }
+			}
 
-            // Enforce category permissions
-            await scc.ModifyAsync(gcp => gcp.PermissionOverwrites = new(GetOverwrites(ivao, category.Permissions)));
+			// Enforce category permissions
+			await scc.ModifyAsync(gcp => gcp.PermissionOverwrites = new(GetOverwrites(ivao, category.Permissions)));
 
 			// Delete any unwanted channels
 			string[] catNames = category.Channels.Select(cc => cc.Name).ToArray();
 			foreach (var channel in scc.Channels.Where(c => !catNames.Contains(c.Name) || c is SocketTextChannel && category.Channels.First(cc => cc.Name == c.Name).Voice || c is SocketVoiceChannel && !category.Channels.First(cc => cc.Name == c.Name).Voice))
-				await channel.DeleteAsync();
+				_ = channel.DeleteAsync();
 
 			foreach (var channel in category.Channels
 #if DEBUG
@@ -871,7 +884,7 @@ public partial class DiscordService
 					}
 
 					await svc.SyncPermissionsAsync();
-					await svc.ModifyAsync(acp => { acp.PermissionOverwrites = new(GetOverwrites(ivao, channel.Permissions)); acp.CategoryId = new(scc.Id); if (channel.Limit > 0) acp.UserLimit = new(channel.Limit); });
+					_ = svc.ModifyAsync(acp => { acp.PermissionOverwrites = new(GetOverwrites(ivao, channel.Permissions)); acp.CategoryId = new(scc.Id); if (channel.Limit > 0) acp.UserLimit = new(channel.Limit); });
 				}
 				else
 				{
@@ -883,12 +896,14 @@ public partial class DiscordService
 						while (stc is null);
 					}
 
-					await stc.ModifyAsync(tcp => { tcp.PermissionOverwrites = new(GetOverwrites(ivao, channel.Permissions)); tcp.CategoryId = new(scc.Id); });
+					Task tmp = stc.ModifyAsync(tcp => { tcp.PermissionOverwrites = new(GetOverwrites(ivao, channel.Permissions)); tcp.CategoryId = new(scc.Id); });
 
 					if (channel.Messages is not null)
 					{
+						await tmp;
+
 						await foreach (var msgs in stc.GetMessagesAsync())
-							await stc.DeleteMessagesAsync(msgs);
+							_ = stc.DeleteMessagesAsync(msgs);
 
 						foreach (string msg in channel.Messages)
 							await stc.SendMessageAsync(msg);

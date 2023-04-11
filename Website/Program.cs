@@ -12,6 +12,7 @@ using Website.Data.Ocms;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
 builder.WebHost.UseUrls("http://*:80;https://*:443");
 
 if (File.Exists("site.crt"))
