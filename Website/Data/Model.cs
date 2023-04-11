@@ -64,7 +64,9 @@ public enum DiscordRoles : ulong
 	Membership	= 0b0010_00_00_00,
 	Events		= 0b0100_00_00_00,
 
-	Administrator = 0x8_00000_0000_00_00_00L
+	Administrator = 0x8_00000_0000_00_00_00L,
+
+	All = 0x8_00000_0111_01_11_11L
 }
 
 public enum AtcRating : int

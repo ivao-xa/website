@@ -520,6 +520,24 @@ public partial class DiscordService
 				case "unlink":
 					try
 					{
+						var ivao = _client.Guilds.Single();
+						IEnumerable<SocketRole> roleToSnowflakes(DiscordRoles roles, AtcRating? atcRating = null, PilotRating? pilotRating = null)
+						{
+							yield return ivao.Roles.Single(r => r.Name.Equals("linked", StringComparison.InvariantCultureIgnoreCase));
+
+							for (int shift = 0; shift < 64; ++shift)
+								if (roles.HasFlag((DiscordRoles)((ulong)1 << shift)))
+									yield return ivao.Roles.Single(r => r.Name.Equals(_roles[(DiscordRoles)((ulong)1 << shift)], StringComparison.InvariantCulture));
+
+							yield return ivao.Roles.Single(r => r.Name.Equals("visitor", StringComparison.InvariantCulture));
+
+							foreach (var ar in Enum.GetValues<AtcRating>())
+								yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((AtcRating)Math.Min((int)ar, (int)AtcRating.SEC)) switch { "SEC" => "SEC+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
+
+							foreach (var pr in Enum.GetValues<PilotRating>())
+								yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((PilotRating)Math.Min((int)pr, (int)PilotRating.ATP)) switch { "ATP" => "ATP+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
+						}
+
 						var unlinkContext = await _webContextFactory.CreateDbContextAsync();
 						var unlinkUser = (SocketGuildUser)getOption("user").Value;
 						if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == unlinkUser.Id) is User ulU)
@@ -527,7 +545,8 @@ public partial class DiscordService
 							unlinkContext.Users.Remove(ulU);
 							await unlinkContext.SaveChangesAsync();
 						}
-						await unlinkUser.RemoveRolesAsync(unlinkUser.Roles);
+
+						_ = unlinkUser.RemoveRolesAsync(roleToSnowflakes(DiscordRoles.All).Distinct());
 						await command.ModifyOriginalResponseAsync(r => r.Content = "Done! They'll now have to reverify.");
 					}
 					catch (Exception ex)
