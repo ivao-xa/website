@@ -74,18 +74,23 @@
 		var context = await ContextFactory.CreateDbContextAsync();
 		try
 		{
-			var trainings = context.Exams.Cast<ICalendarItem>().ToArray();
+			context.Exams.RemoveRange(context.Exams.AsEnumerable().Where(ex => ex.End.AddHours(1) < DateTime.UtcNow));
+			context.Events.RemoveRange(context.Events.AsEnumerable().Where(ex => ex.End.AddDays(1) < DateTime.UtcNow));
+			await context.SaveChangesAsync();
+
+			var trainings = context.Exams.AsEnumerable().Where(ex => ex.End > DateTime.UtcNow).Cast<ICalendarItem>().ToArray();
+			var events = context.Events.AsEnumerable().Where(ex => ex.End > DateTime.UtcNow).Cast<ICalendarItem>().ToArray();
 			Event onlineDay = new() {
 					Id = -1,
 					Name = "XA Online Day",
 					Start =
-							DateTime.UtcNow
+							DateTime.UtcNow.Date
 							.AddDays(((DayOfWeek.Thursday + 7) - DateTime.UtcNow.DayOfWeek) % 7) // Move to Thursday
-							.AddMinutes(-(DateTime.UtcNow.Hour * 60 + DateTime.UtcNow.Minute)) // Reset hours/minutes
 							.AddHours(18)   // Starts at 18z
 				};
 
-			_upcoming = trainings.Concat(context.Events.Cast<ICalendarItem>().ToArray()).Append(onlineDay).OrderByDescending(i => i.Start);
+
+			_upcoming = trainings.Concat(events).Append(onlineDay).OrderByDescending(i => i.Start);
 		}
 		catch { }
 		await InvokeAsync(StateHasChanged);

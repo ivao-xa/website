@@ -1,4 +1,4 @@
-﻿@page "/event/edit"
+﻿@page "/event/edit/{EventId:int?}"
 @using Microsoft.EntityFrameworkCore
 @using Website.Data
 @inject IDbContextFactory<WebsiteContext> ContextFactory
@@ -54,8 +54,7 @@
 
 @code {
 	[Parameter]
-	[SupplyParameterFromQuery(Name = "id")]
-	public int? EventId { get; set; } = null;
+	public int? EventId { get; set; }
 
 #pragma warning disable CS8618
 	[Parameter]
@@ -74,8 +73,14 @@
 
 	override protected async Task OnParametersSetAsync()
 	{
+		if (!EventId.HasValue)
+		{
+			Event = new();
+			return;
+		}
+
 		var context = await ContextFactory.CreateDbContextAsync();
-		Event = context.Events.Find(EventId) ?? new();
+		Event = context.Events.Find(EventId.Value) ?? new() { Id = EventId.Value };
 	}
 
 	async Task EventChangedAsync()
