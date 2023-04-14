@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Design;
 
 using MySql.EntityFrameworkCore.Extensions;
 
+using Org.BouncyCastle.Security;
+
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -15,6 +17,7 @@ public class WebsiteContext : DbContext
 	public DbSet<DeviationReport> Deviations { get; set; }
 	public DbSet<Document> Documents { get; set; }
 	public DbSet<Event> Events { get; set; }
+	public DbSet<EventSignup> EventSignups { get; set; }
 	public DbSet<Exam> Exams { get; set; }
 	public DbSet<TrainingRequest> TrainingRequests { get; set; }
 
@@ -56,17 +59,17 @@ public class User
 [Flags]
 public enum DiscordRoles : ulong
 {
-	Member	= 0b01,
-	Staff	= 0b10,
+	Member = 0b01,
+	Staff = 0b10,
 
-	Controller	= 0b01_00,
-	Pilot		= 0b10_00,
+	Controller = 0b01_00,
+	Pilot = 0b10_00,
 
-	Announcement	= 0b01_00_00,
+	Announcement = 0b01_00_00,
 
-	Training	= 0b0001_00_00_00,
-	Membership	= 0b0010_00_00_00,
-	Events		= 0b0100_00_00_00,
+	Training = 0b0001_00_00_00,
+	Membership = 0b0010_00_00_00,
+	Events = 0b0100_00_00_00,
 
 	Administrator = 0x8_00000_0000_00_00_00L,
 
@@ -130,22 +133,64 @@ public class Event : ICalendarItem
 	public string Name { get; set; } = string.Empty;
 	public DateTime Start { get; set; } = DateTime.UtcNow;
 	public DateTime End { get; set; } = DateTime.UtcNow;
-	public string Route { get; set; } = string.Empty;
-	public string Positions { get; set; } = string.Empty;
+	public string InternalPositions { get; set; } = string.Empty;
+	[NotMapped]
+	public string[] Positions
+	{
+		get => InternalPositions.Split(); 
+		set => InternalPositions = string.Join(' ', value); 
+	}
 	public string Controllers { get; set; } = string.Empty;
+
+	public string ForumUrl { get; set; } = string.Empty;
+	public string? BannerUrl { get; set; } = null;
+
+	public IQueryable<EventSignup> Signups(WebsiteContext context) => context.EventSignups.Where(su => su.EventId == Id);
+	public void AddOrUpdateSignup(WebsiteContext context, EventSignup signup)
+	{
+		if (context.EventSignups.Any(su => su.Controller == signup.Controller && su.Position == signup.Position && su.Time == signup.Time))
+			context.EventSignups.RemoveRange(context.EventSignups.Where(su => su.Controller == signup.Controller && su.Position == signup.Position && su.Time == signup.Time));
+
+		signup = new() {
+			EventId = Id,
+			Controller = signup.Controller,
+			Position = signup.Position,
+			Time = signup.Time
+		};
+
+		context.EventSignups.Add(signup);
+	}
+
+	public void RemoveSignup(WebsiteContext context, EventSignup signup)
+	{
+		if (context.EventSignups.Any(su => su.Controller == signup.Controller && su.Position == signup.Position && su.Time == signup.Time))
+			context.EventSignups.RemoveRange(context.EventSignups.Where(su => su.Controller == signup.Controller && su.Position == signup.Position && su.Time == signup.Time));
+	}
+}
+
+[Table("EventSignups")]
+public class EventSignup
+{
+	public int Id { get; set; }
+	[ForeignKey("Events.Id")]
+	public int EventId { get; set; }
+
+	public int Controller { get; set; }
+	public string Position { get; set; } = "";
+	public DateTime Time { get; set; }
 }
 
 [Table("Exams")]
 public class Exam : ICalendarItem
 {
-    public int Id { get; set; }
+	public int Id { get; set; }
 
 	public AtcRating Rating { get; set; }
 	public bool Mock { get; set; } = false;
-    public int Trainee { get; set; }
-    public int Trainer { get; set; }
+	public int Trainee { get; set; }
+	public int Trainer { get; set; }
 	public string Position { get; set; } = string.Empty;
-    public DateTime Start { get; set; } = DateTime.UtcNow;
+	public DateTime Start { get; set; } = DateTime.UtcNow;
 
 	public DateTime End => Start + TimeSpan.FromHours(2);
 	public string Name => $"{Rating} {(Mock ? "training" : "exam")} at {Position}";
@@ -156,11 +201,11 @@ public class TrainingRequest
 {
 	public int Id { get; set; }
 
-    public AtcRating? AtcRating { get; set; }
-    public PilotRating? PilotRating { get; set; }
-    public int Trainee { get; set; }
-    public int? Trainer { get; set; }
-    public string Position { get; set; } = string.Empty;
+	public AtcRating? AtcRating { get; set; }
+	public PilotRating? PilotRating { get; set; }
+	public int Trainee { get; set; }
+	public int? Trainer { get; set; }
+	public string Position { get; set; } = string.Empty;
 	public string Comments { get; set; } = string.Empty;
 }
 

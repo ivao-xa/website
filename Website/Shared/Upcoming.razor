@@ -14,18 +14,52 @@
 		<tbody>
 			@foreach (var item in _upcoming ?? Array.Empty<ICalendarItem>())
 			{
-				<tr>
-					<th scope="row" class="text-center text-secondary">@item.Name</th>
-					<td class="text-center text-secondary">@(item.Start.ToLongDateString()[..item.Start.ToLongDateString().LastIndexOf(',')])</td>
-					<td class="text-center text-secondary">@item.Start.ToString("HH:mm")z</td>
-				</tr>
+				var itemCache = item;
+				if (item is Event ev && ev.Positions.Any())
+				{
+					<tr @onclick="_ => Select(itemCache)" data-bs-toggle="modal" data-bs-target="#eventModal">
+						<th scope="row" class="text-center text-secondary">@item.Name</th>
+						<td class="text-center text-secondary">@(item.Start.ToLongDateString()[..item.Start.ToLongDateString().LastIndexOf(',')])</td>
+						<td class="text-center text-secondary">@item.Start.ToString("HH:mm")z</td>
+					</tr>
+				}
+				else
+				{
+					<tr>
+						<th scope="row" class="text-center text-secondary">@item.Name</th>
+						<td class="text-center text-secondary">@(item.Start.ToLongDateString()[..item.Start.ToLongDateString().LastIndexOf(',')])</td>
+						<td class="text-center text-secondary">@item.Start.ToString("HH:mm")z</td>
+					</tr>
+				}
 			}
 		</tbody>
 	</table>
 </div>
 
+
+<div id="eventModal" class="modal fade" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-xl">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h1 id="eventModalLabel" class="modal-title fs-5">Register</h1>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				@if (_selectedEvent is not null)
+				{
+					<EventCalendar Event="_selectedEvent" />
+				}
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+			</div>
+		</div>
+	</div>
+</div>
+
 @code {
 	IEnumerable<ICalendarItem>? _upcoming = null;
+	Event? _selectedEvent = null;
 
 	protected override void OnAfterRender(bool firstRender)
 	{
@@ -40,19 +74,34 @@
 		var context = await ContextFactory.CreateDbContextAsync();
 		try
 		{
-			var trainings = context.Exams.Cast<ICalendarItem>().ToArray();
+			context.Exams.RemoveRange(context.Exams.AsEnumerable().Where(ex => ex.End.AddHours(1) < DateTime.UtcNow));
+			context.Events.RemoveRange(context.Events.AsEnumerable().Where(ex => ex.End.AddDays(1) < DateTime.UtcNow));
+			await context.SaveChangesAsync();
+
+			var trainings = context.Exams.AsEnumerable().Where(ex => ex.End > DateTime.UtcNow).Cast<ICalendarItem>().ToArray();
+			var events = context.Events.AsEnumerable().Where(ex => ex.End > DateTime.UtcNow).Cast<ICalendarItem>().ToArray();
 			Event onlineDay = new() {
+					Id = -1,
 					Name = "XA Online Day",
 					Start =
-						DateTime.UtcNow
-						.AddDays(((DayOfWeek.Thursday + 7) - DateTime.UtcNow.DayOfWeek) % 7) // Move to Thursday
-						.AddMinutes(-(DateTime.UtcNow.Hour * 60 + DateTime.UtcNow.Minute)) // Reset hours/minutes
-						.AddHours(18)   // Starts at 18z
+							DateTime.UtcNow.Date
+							.AddDays(((DayOfWeek.Thursday + 7) - DateTime.UtcNow.DayOfWeek) % 7) // Move to Thursday
+							.AddHours(18)   // Starts at 18z
 				};
 
-			_upcoming = trainings.Concat(context.Events.Cast<ICalendarItem>().ToArray()).Append(onlineDay).OrderByDescending(i => i.Start);
+
+			_upcoming = trainings.Concat(events).Append(onlineDay).OrderByDescending(i => i.Start);
 		}
 		catch { }
 		await InvokeAsync(StateHasChanged);
+	}
+
+	void Select(ICalendarItem calItem)
+	{
+		if (calItem is Event ev)
+		{
+			_selectedEvent = ev;
+			_ = InvokeAsync(StateHasChanged);
+		}
 	}
 }

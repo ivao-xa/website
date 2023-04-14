@@ -1067,7 +1067,7 @@ public partial class DiscordService
 				continue;
 			}
 
-			string[] controllerSnowflakes = @event.Controllers.Split(':').Where(c => c.All(char.IsDigit)).Select(vid => context.Users.FirstOrDefault(u => u.Vid == int.Parse(vid))?.Snowflake?.ToString()).Where(v => v is not null).Cast<string>().ToArray();
+			string[] controllerSnowflakes = @event.Controllers.Split(':', StringSplitOptions.RemoveEmptyEntries).Select(vid => context.Users.Find(int.Parse(vid))?.Snowflake?.ToString()).Where(v => v is not null).Cast<string>().ToArray();
 			await ivao.CreateVoiceChannelAsync(channelName, tcp => { tcp.CategoryId = new(category.Id); tcp.PermissionOverwrites = new(GetOverwrites(ivao, new() { Write = controllerSnowflakes })); });
 		}
 

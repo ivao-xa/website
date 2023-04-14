@@ -23,7 +23,7 @@
 					{
 						<tr class="align-middle">
 							<td>
-								<select @onchange="v => SetTrainer(training.Id, int.Parse(v.Value.ToString()!))">
+								<select @onchange="v => SetTrainer(training.Id, int.Parse(v.Value?.ToString()!))">
 									@foreach (var trainer in GetTrainers())
 									{
 										@if (training.Trainer == trainer.Vid)

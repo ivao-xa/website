@@ -48,6 +48,22 @@
 							}
 						</Unauthorized>
 					</Authenticated>
+					@if (_currentEvents is Event[] events)
+					{
+						<Authenticated RequiredRoles="DiscordRoles.Training" Context="_">
+							<Staff>
+								<div class="nav-item dropdown">
+									<a href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" class="nav-link dropdown-toggle">Events</a>
+									<ul class="dropdown-menu dropdown-menu-dark">
+										@foreach (Event ev in events)
+										{
+											<li><NavLink class="nav-link dropdown-item" href="@("/event/edit/" + ev.Id)">@ev.Name</NavLink></li>
+										}
+									</ul>
+								</div>
+							</Staff>
+						</Authenticated>
+					}
 					<Authenticated RequiredRoles="DiscordRoles.Administrator" Context="_">
 						<NavLink class="nav-link" href="/discord">Discord</NavLink>
 					</Authenticated>
@@ -112,6 +128,7 @@
 	ATC? _currentController = null;
 	User? _currentUser = null;
 	Document[]? _currentDocuments = null;
+	Event[]? _currentEvents = null;
 
 	protected override void OnInitialized() => _currentGreeting = _greetings[System.Random.Shared.Next(_greetings.Length)];
 
@@ -120,7 +137,7 @@
 		if (!firstRender)
 			return;
 
-		Timer t = new(async _ => await UpdateAsync(), null, 0, 5000);
+		Timer t = new(async _ => await UpdateAsync(), null, 0, 1000);
 	}
 
 	async Task UpdateAsync()
@@ -138,6 +155,7 @@
 		}
 
 		_currentTrainee = context.TrainingRequests.Any(tr => tr.Trainee == _currentUser.Vid);
+		_currentEvents = context.Events.ToArray();
 
 		await InvokeAsync(StateHasChanged);
 	}
