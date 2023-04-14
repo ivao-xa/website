@@ -15,11 +15,22 @@
 			@foreach (var item in _upcoming ?? Array.Empty<ICalendarItem>())
 			{
 				var itemCache = item;
-				<tr @onclick="_ => Select(itemCache)" data-bs-toggle="modal" data-bs-target="#eventModal">
-					<th scope="row" class="text-center text-secondary">@item.Name</th>
-					<td class="text-center text-secondary">@(item.Start.ToLongDateString()[..item.Start.ToLongDateString().LastIndexOf(',')])</td>
-					<td class="text-center text-secondary">@item.Start.ToString("HH:mm")z</td>
-				</tr>
+				if (item is Event ev && ev.Positions.Any())
+				{
+					<tr @onclick="_ => Select(itemCache)" data-bs-toggle="modal" data-bs-target="#eventModal">
+						<th scope="row" class="text-center text-secondary">@item.Name</th>
+						<td class="text-center text-secondary">@(item.Start.ToLongDateString()[..item.Start.ToLongDateString().LastIndexOf(',')])</td>
+						<td class="text-center text-secondary">@item.Start.ToString("HH:mm")z</td>
+					</tr>
+				}
+				else
+				{
+					<tr>
+						<th scope="row" class="text-center text-secondary">@item.Name</th>
+						<td class="text-center text-secondary">@(item.Start.ToLongDateString()[..item.Start.ToLongDateString().LastIndexOf(',')])</td>
+						<td class="text-center text-secondary">@item.Start.ToString("HH:mm")z</td>
+					</tr>
+				}
 			}
 		</tbody>
 	</table>
@@ -65,6 +76,7 @@
 		{
 			var trainings = context.Exams.Cast<ICalendarItem>().ToArray();
 			Event onlineDay = new() {
+					Id = -1,
 					Name = "XA Online Day",
 					Start =
 							DateTime.UtcNow
