@@ -1,4 +1,4 @@
-﻿@page "/training/staff"
+﻿@page "/training"
 @using Microsoft.EntityFrameworkCore
 @using System.Text.RegularExpressions;
 @using Website.Data
@@ -9,6 +9,102 @@
 <Authenticated RequiredRoles="DiscordRoles.Training">
 	<Staff>
 		<div class="d-flex flex-column w-100">
+			@{
+				var scheduledItems = GetExams();
+			}
+			<h1 class="text-center">Exams</h1>
+			<table class="table w-100">
+				<thead>
+					<tr class="head">
+						<th scope="col">Trainer</th>
+						<th scope="col">Trainee</th>
+						<th scope="col">Details</th>
+						<th scope="col">Time</th>
+						<th scope="col">Edit</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var (exam, examinee) in scheduledItems.Where(e => !e.Exam.Mock))
+					{
+						<tr class="align-middle">
+							<td>
+								<select @onchange="v => SetExaminer(exam.Id, int.Parse(v.Value?.ToString()!))">
+									@foreach (var trainer in GetTrainers())
+									{
+										@if (exam.Trainer == trainer.Vid)
+										{
+											<option value="@trainer.Vid" selected>@trainer.Name - Current</option>
+										}
+										else
+										{
+											<option value="@trainer.Vid">@trainer.Name</option>
+										}
+									}
+								</select>
+							</td>
+							<td>
+								<a href="https://ivao.aero/Member.aspx?Id=@(exam.Trainee)" target="_blank">
+									@(examinee?.ToString() ?? exam.Trainee.ToString())
+								</a>
+							</td>
+							<td>
+								@exam.Name
+							</td>
+							<td>
+								<i class="oi oi-pencil" href="@($"/exam/{exam.Id}")"/>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+
+			<h1 class="text-center">Trainings</h1>
+			<table class="table w-100">
+				<thead>
+					<tr class="head">
+						<th scope="col">Trainer</th>
+						<th scope="col">Trainee</th>
+						<th scope="col">Details</th>
+						<th scope="col">Time</th>
+						<th scope="col">Edit</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var (exam, examinee) in scheduledItems.Where(e => e.Exam.Mock))
+					{
+						<tr class="align-middle">
+							<td>
+								<select @onchange="v => SetExaminer(exam.Id, int.Parse(v.Value?.ToString()!))">
+									@foreach (var trainer in GetTrainers())
+									{
+										@if (exam.Trainer == trainer.Vid)
+										{
+											<option value="@trainer.Vid" selected>@trainer.Name - Current</option>
+										}
+										else
+										{
+											<option value="@trainer.Vid">@trainer.Name</option>
+										}
+									}
+								</select>
+							</td>
+							<td>
+								<a href="https://ivao.aero/Member.aspx?Id=@(exam.Trainee)" target="_blank">
+									@(examinee?.ToString() ?? exam.Trainee.ToString())
+								</a>
+							</td>
+							<td>
+								@exam.Name
+							</td>
+							<td>
+								<i class="oi oi-pencil" href="@($"/exam/{exam.Id}")" />
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+
+			<h1 class="text-center">Requests</h1>
 			<table class="table w-100">
 				<thead>
 					<tr class="head">
@@ -74,16 +170,33 @@
 </Authenticated>
 
 @code {
-	private IEnumerable<(TrainingRequest req, User? trainee)> GetTrainings()
+	private IEnumerable<(TrainingRequest Request, User? Trainee)> GetTrainings()
 	{
 		var context = ContextFactory.CreateDbContext();
 		return context.TrainingRequests.AsNoTracking().ToArray().Select(req => (req, context.Users.Find(req.Trainee)));
+	}
+
+	private IEnumerable<(Exam Exam, User? Trainee)> GetExams()
+	{
+		var context = ContextFactory.CreateDbContext();
+		return context.Exams.AsNoTracking().ToArray().Select(exam => (exam, context.Users.Find(exam.Trainee)));
 	}
 
 	private IEnumerable<User> GetTrainers()
 	{
 		var context = ContextFactory.CreateDbContext();
 		return context.Users.Where(u => u.Roles.HasFlag(DiscordRoles.Training)).AsNoTracking();
+	}
+
+	private void SetExaminer(int id, int trainer)
+	{
+		var context = ContextFactory.CreateDbContext();
+		Exam? exam = context.Exams.Find(id);
+		if (exam is not null)
+		{
+			exam.Trainer = trainer;
+			context.SaveChanges();
+		}
 	}
 
 	private void SetTrainer(int id, int trainer)
