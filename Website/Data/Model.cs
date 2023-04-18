@@ -225,4 +225,5 @@ public interface ICalendarItem
 	public DateTime Start { get; }
 	public DateTime End { get; }
 	public string Name { get; }
+	public string? BannerUrl { get; set; }
 }
