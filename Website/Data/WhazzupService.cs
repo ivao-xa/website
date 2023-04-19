@@ -19,7 +19,11 @@ public class WhazzupService
 		{
 			while (true)
 			{
-				await UpdateLastConnectedTimes(webContextFactory.CreateDbContext());
+				try
+				{
+					await UpdateLastConnectedTimes(webContextFactory.CreateDbContext());
+				}
+				catch (Exception ex) { Console.Error.WriteLine(ex + ex.StackTrace); }
 				await Task.Delay(TimeSpan.FromSeconds(15));
 			}
 		});
