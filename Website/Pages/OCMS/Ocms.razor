@@ -203,7 +203,7 @@
 	}
 
 	private bool CheckAuthed(User user) =>
-		GetAuthed(user) is ATC atc && (atc.Callsign.StartsWith("CZQX") || atc.Callsign.StartsWith("EGGX") || atc.Callsign.StartsWith("KZWY"));
+		GetAuthed(user) is ATC atc && !string.IsNullOrWhiteSpace(atc.Callsign) && (atc.Callsign.StartsWith("CZQX") || atc.Callsign.StartsWith("EGGX") || atc.Callsign.StartsWith("KZWY"));
 
 
 	private ATC? GetAuthed(User user) =>
