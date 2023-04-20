@@ -202,8 +202,14 @@
 		await InvokeAsync(StateHasChanged);
 	}
 
-	private bool CheckAuthed(User user) =>
-		GetAuthed(user) is ATC atc && (atc.Callsign.StartsWith("CZQX") || atc.Callsign.StartsWith("EGGX") || atc.Callsign.StartsWith("KZWY"));
+	private bool CheckAuthed(User user)
+	{
+		var authedUser = GetAuthed(user);
+		if (authedUser is null)
+			return false;
+		else
+			return (authedUser.Value.Callsign.StartsWith("CZQX") || authedUser.Value.Callsign.StartsWith("EGGX") || authedUser.Value.Callsign.StartsWith("KZWY"));
+	}
 
 
 	private ATC? GetAuthed(User user) =>
