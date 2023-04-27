@@ -43,7 +43,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Deviations", (string)null);
+                    b.ToTable("Deviations");
                 });
 
             modelBuilder.Entity("Website.Data.Document", b =>
@@ -70,7 +70,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Documents", (string)null);
+                    b.ToTable("Documents");
                 });
 
             modelBuilder.Entity("Website.Data.Event", b =>
@@ -106,7 +106,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Events", (string)null);
+                    b.ToTable("Events");
                 });
 
             modelBuilder.Entity("Website.Data.EventSignup", b =>
@@ -130,9 +130,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EventId");
-
-                    b.ToTable("EventSignups", (string)null);
+                    b.ToTable("EventSignups");
                 });
 
             modelBuilder.Entity("Website.Data.Exam", b =>
@@ -140,6 +138,9 @@ namespace Website.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    b.Property<string>("BannerUrl")
+                        .HasColumnType("longtext");
 
                     b.Property<bool>("Mock")
                         .HasColumnType("tinyint(1)");
@@ -162,7 +163,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Exams", (string)null);
+                    b.ToTable("Exams");
                 });
 
             modelBuilder.Entity("Website.Data.TrainingRequest", b =>
@@ -193,7 +194,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TrainingRequests", (string)null);
+                    b.ToTable("TrainingRequests");
                 });
 
             modelBuilder.Entity("Website.Data.User", b =>
@@ -246,19 +247,7 @@ namespace Website.Migrations
 
                     b.HasKey("Vid");
 
-                    b.ToTable("Users", (string)null);
-                });
-
-            modelBuilder.Entity("Website.Data.EventSignup", b =>
-                {
-                    b.HasOne("Website.Data.Event", null)
-                        .WithMany("Signups")
-                        .HasForeignKey("EventId");
-                });
-
-            modelBuilder.Entity("Website.Data.Event", b =>
-                {
-                    b.Navigation("Signups");
+                    b.ToTable("Users");
                 });
 #pragma warning restore 612, 618
         }

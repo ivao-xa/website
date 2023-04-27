@@ -28,14 +28,22 @@
 							<div class="nav-item dropdown">
 								<a href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" class="nav-link dropdown-toggle">Training</a>
 								<ul class="dropdown-menu dropdown-menu-dark">
-									<li><NavLink class="nav-link dropdown-item" href="/training/staff">Trainings</NavLink></li>
+									<li><NavLink class="nav-link dropdown-item" href="/training">Trainings</NavLink></li>
 									@if (_currentTrainee)
 									{
-										<li><NavLink class="nav-link dropdown-item" href="/training/student">Academy</NavLink></li>
+										<li><NavLink class="nav-link dropdown-item" href="/academy">Academy</NavLink></li>
 									}
 									else
 									{
-										<li><NavLink class="nav-link dropdown-item" href="/training/edit">Academy</NavLink></li>
+										<li><NavLink class="nav-link dropdown-item" href="/academy/edit">Academy</NavLink></li>
+									}
+
+									@if (_currentExams is (Exam, User?)[] exams)
+									{
+										foreach (var (exam, examinee) in exams)
+										{
+											<li><NavLink class="nav-link dropdown-item" href="@($"/training/{exam.Id}")">@(examinee?.Name ?? exam.Trainee.ToString()) (@exam.Rating)</NavLink></li>
+										}
 									}
 								</ul>
 							</div>
@@ -56,7 +64,7 @@
 									<ul class="dropdown-menu dropdown-menu-dark">
 										@foreach (Event ev in events)
 										{
-											<li><NavLink class="nav-link dropdown-item" href="@("/event/edit/" + ev.Id)">@ev.Name</NavLink></li>
+											<li><NavLink class="nav-link dropdown-item" href="@($"/event/edit/{ev.Id}")">@ev.Name</NavLink></li>
 										}
 									</ul>
 								</div>
@@ -128,6 +136,7 @@
 	User? _currentUser = null;
 	Document[]? _currentDocuments = null;
 	Event[]? _currentEvents = null;
+	(Exam, User?)[]? _currentExams = null;
 
 	protected override void OnInitialized() => _currentGreeting = _greetings[System.Random.Shared.Next(_greetings.Length)];
 
@@ -155,6 +164,7 @@
 
 		_currentTrainee = context.TrainingRequests.Any(tr => tr.Trainee == _currentUser.Vid);
 		_currentEvents = context.Events.ToArray();
+		_currentExams = context.Exams.Where(ex => ex.Trainer == _currentUser.Vid).ToArray().Select(ex => (ex, context.Users.Find(ex.Trainer))).ToArray();
 
 		await InvokeAsync(StateHasChanged);
 	}

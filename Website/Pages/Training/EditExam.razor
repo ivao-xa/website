@@ -1,0 +1,86 @@
+﻿@page "/exam/{ExamId:int?}"
+@using Microsoft.EntityFrameworkCore
+@using Website.Data
+@inject IDbContextFactory<WebsiteContext> ContextFactory
+
+@if (Exam is not null)
+{
+	<div class="container my-4 d-flex flex-column">
+		<Authenticated RequiredRoles="DiscordRoles.Training">
+			<Staff>
+				<div class="form">
+					<div class="mb-3 row">
+						<div class="col-auto"><label for="examMock" class="form-label">Training</label></div>
+						<div class="col-auto flex-grow-1"><input class="form-check-input" type="checkbox" role="switch" id="examMock" @bind="Exam.Mock" @bind:after="StateHasChanged" /></div>
+					</div>
+					<div class="mb-3 row">
+						<div class="col-auto"><label for="examRating" class="form-label">@mockType Rating</label></div>
+						<div class="col-auto flex-grow-1">
+							<InputSelect class="form-control" TValue="AtcRating" name="examRating" @bind-Value="Exam.Rating" @bind-Value:after="StateHasChanged"></InputSelect>
+						</div>
+					</div>
+					<div class="mb-3 row">
+						<div class="col-auto"><label for="examBanner" class="form-label">Banner URL</label></div>
+						<div class="col-auto flex-grow-1"><input type="url" class="form-control" name="examBanner" @bind="Exam.BannerUrl" @bind:after="StateHasChanged" /></div>
+					</div>
+					<div class="mb-3 row">
+						<div class="col-auto"><label for="examForum" class="form-label">Position</label></div>
+						<div class="col-auto flex-grow-1"><input type="text" class="form-control" name="examForum" @bind="Exam.Position" @bind:after="StateHasChanged" /></div>
+					</div>
+					<div class="mb-3 row">
+						<div class="col-auto"><label for="examStart" class="form-label">Start</label></div>
+						<div class="col-auto flex-grow-1"><input type="datetime-local" class="form-control" name="examStart" @bind="Exam.Start" @bind:after="StateHasChanged" /></div>
+					</div>
+					<button class="btn btn-primary" @onclick="_ => ExamChangedAsync()">Save</button>
+				</div>
+			</Staff>
+			<Loading>
+				<span>Loading training/exam from database&hellip;</span>
+			</Loading>
+		</Authenticated>
+
+		<div class="mb-3 row">
+			@Exam.Name from @Exam.Start to @(Exam.End).
+		</div>
+	</div>
+}
+else
+{
+	<span>Training/exam not found</span>
+}
+
+@code {
+	[Parameter]
+	public int? ExamId { get; set; }
+
+#pragma warning disable CS8618
+	[Parameter]
+	public Exam Exam { get; set; }
+#pragma warning restore CS8618
+
+	private string mockType => (Exam?.Mock ?? false) ? "Training" : "Exam";
+
+	override protected async Task OnParametersSetAsync()
+	{
+		if (!ExamId.HasValue)
+		{
+			Exam = new();
+			return;
+		}
+
+		var context = await ContextFactory.CreateDbContextAsync();
+		Exam = context.Exams.Find(ExamId.Value) ?? new() { Id = ExamId.Value };
+	}
+
+	async Task ExamChangedAsync()
+	{
+		var context = await ContextFactory.CreateDbContextAsync();
+		if (context.Exams.Any(e => e.Id == Exam.Id))
+			context.Exams.Update(Exam);
+		else
+			await context.Exams.AddAsync(Exam);
+
+		await context.SaveChangesAsync();
+		await InvokeAsync(StateHasChanged);
+	}
+}

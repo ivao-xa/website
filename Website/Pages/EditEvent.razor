@@ -15,11 +15,11 @@
 					</div>
 					<div class="mb-3 row">
 						<div class="col-auto"><label for="eventBanner" class="form-label">Banner URL</label></div>
-						<div class="col-auto flex-grow-1"><input type="text" class="form-control" name="eventBanner" @bind="Event.BannerUrl" @bind:after="StateHasChanged" /></div>
+						<div class="col-auto flex-grow-1"><input type="url" class="form-control" name="eventBanner" @bind="Event.BannerUrl" @bind:after="StateHasChanged" /></div>
 					</div>
 					<div class="mb-3 row">
 						<div class="col-auto"><label for="eventForum" class="form-label">Forum URL</label></div>
-						<div class="col-auto flex-grow-1"><input type="text" class="form-control" name="eventForum" @bind="Event.ForumUrl" @bind:after="StateHasChanged" /></div>
+						<div class="col-auto flex-grow-1"><input type="url" class="form-control" name="eventForum" @bind="Event.ForumUrl" @bind:after="StateHasChanged" /></div>
 					</div>
 					<div class="mb-3 row">
 						<div class="col-auto"><label for="eventStart" class="form-label">Start</label></div>

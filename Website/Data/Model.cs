@@ -190,6 +190,7 @@ public class Exam : ICalendarItem
 	public int Trainee { get; set; }
 	public int Trainer { get; set; }
 	public string Position { get; set; } = string.Empty;
+	public string? BannerUrl { get; set; } = null;
 	public DateTime Start { get; set; } = DateTime.UtcNow;
 
 	public DateTime End => Start + TimeSpan.FromHours(2);
@@ -224,4 +225,5 @@ public interface ICalendarItem
 	public DateTime Start { get; }
 	public DateTime End { get; }
 	public string Name { get; }
+	public string? BannerUrl { get; set; }
 }

@@ -1,9 +1,30 @@
 ﻿@page "/"
-@using Microsoft.EntityFrameworkCore.Internal
+@using Microsoft.EntityFrameworkCore;
 @using Website.Data
+@inject IDbContextFactory<WebsiteContext> ContextFactory
 
 <div class="container gap-5">
+	<div id="bannerCarousel" class="carousel slide" data-bs-ride="carousel">
+		<div class="carousel-inner">
+			<div class="carousel-item active"><img src="https://xa.ivao.aero/api/v1/public/get_online_day_image.php" class="d-block w-100" alt="XA Online Day" /></div>
+			@foreach (ICalendarItem item in calendarItems ?? Array.Empty<ICalendarItem>())
+			{
+				<div class="carousel-item active"><img src="@item.BannerUrl" class="d-block w-100" alt="@item.Name" /></div>
+			}
+		</div>
+	</div>
     <div class="row">
         <ActiveControllers />
     </div>
 </div>
+
+@code
+{
+	ICalendarItem[]? calendarItems = null;
+
+	override protected async Task OnInitializedAsync()
+	{
+		var context = await ContextFactory.CreateDbContextAsync();
+		context.Events.Cast<ICalendarItem>().Concat(context.Exams).Where(e => e.BannerUrl != null).OrderBy(ici => ici.Start).ToArray();
+	}
+}
