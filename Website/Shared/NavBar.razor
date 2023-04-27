@@ -145,7 +145,7 @@
 		if (!firstRender)
 			return;
 
-		Timer t = new(async _ => await UpdateAsync(), null, 0, 1000);
+		Timer t = new(async _ => await UpdateAsync(), null, 0, 5000);
 	}
 
 	async Task UpdateAsync()
