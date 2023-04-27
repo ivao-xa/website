@@ -10,7 +10,15 @@
 			<Authenticated>
 				<div class="d-flex nav flex-md-row flex-column">
 					<NavLink class="nav-link" Match="NavLinkMatch.All" href="/">Home</NavLink>
-					<NavLink class="nav-link" href="/about">About</NavLink>
+					<div class="nav-item dropdown">
+						<a href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" class="nav-link dropdown-toggle">Wiki</a>
+						<ul class="dropdown-menu dropdown-menu-dark">
+							<li><NavLink class="nav-link dropdown-item" href="https://wiki.ivao.aero/en/home/divisions/xa" target="_blank">Home</NavLink></li>
+							<li><NavLink class="nav-link dropdown-item" href="https://wiki.ivao.aero/en/home/divisions/xa/sop" target="_blank">Facility SOP's</NavLink></li>
+							<li><NavLink class="nav-link dropdown-item" href="https://wiki.ivao.aero/en/home/divisions/xa/phraseology" target="_blank">Phgaseology Guide</NavLink></li>
+							<li><NavLink class="nav-link dropdown-item" href="https://wiki.ivao.aero/en/home/divisions/xa/training" target="_blank">Training Syllabus</NavLink></li>
+						</ul>
+					</div>
 					<NavLink class="nav-link" href="/atc">ATC</NavLink>
 					<Authenticated Context="_">
 						<Staff><NavLink class="nav-link" href="/pilot">Pilot</NavLink></Staff>
