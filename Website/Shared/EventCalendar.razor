@@ -34,8 +34,10 @@
 										var controller = dbContext.Users.Find(signup.Controller)!;
 
 										<div class="@GetRatingClass(controller.RatingAtc ?? AtcRating.AS1) rounded p-1 text-center">
-											<abbr title="@controller.Vid">@controller.Name</abbr>
-											<img src="https://ivao.aero/data/images/ratings/atc/@((int)controller.RatingAtc!.Value).gif" title="@controller.RatingAtc" />
+											<div class="col"><abbr title="@controller.Vid">@controller.Name</abbr></div>
+											<div class="col">
+												<img src="https://ivao.aero/data/images/ratings/atc/@((int)controller.RatingAtc!.Value).gif" title="@controller.RatingAtc" />
+											</div>
 										</div>
 									}
 									@{

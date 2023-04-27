@@ -408,10 +408,13 @@ public partial class DiscordService
 
 		_client.MessageDeleted += async (message, channel) =>
 		{
-			if (!message.HasValue || message.Value.Author is not SocketGuildUser sgu || !channel.HasValue || channel.Value.Name.Contains("museum"))
+			if (!message.HasValue 
+			  || message.Value.Author is not SocketGuildUser sgu
+			  || !channel.HasValue || channel.Value.Name.Contains("museum")
+			  || string.IsNullOrEmpty(message.Value.Content))
 				return;
 
-			await Enshrine($"In a spendid display of idiocy, {sgu.Nickname} sent a message (`{message.Value.Content}`) in <#{channel.Value.Id}> which was fit only for deletion");
+			await Enshrine($"{sgu.Nickname} sent a message (`{message.Value.Content}`) in <#{channel.Value.Id}> which was fit only for deletion");
 		};
 
 		_client.ReactionAdded += async (message, channel, reaction) =>
