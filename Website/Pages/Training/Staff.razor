@@ -5,6 +5,7 @@
 @inject IDbContextFactory<WebsiteContext> ContextFactory
 @inject IvaoApiService Api
 @inject NavigationManager NavManager
+@inject DiscordService Discord
 
 <Authenticated RequiredRoles="DiscordRoles.Training">
 	<Staff>
@@ -234,6 +235,7 @@
 		var context = await ContextFactory.CreateDbContextAsync();
 		context.TrainingRequests.Remove(req);
 		await context.SaveChangesAsync();
+		_ = Discord.UpdateTrainingChannelsAsync(context);
 		await InvokeAsync(StateHasChanged);
 	}
 }
