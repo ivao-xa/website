@@ -245,7 +245,7 @@
 
 	private void Datalink_ResponseIssued(string callsign, DatalinkUpdateResponse response)
 	{
-		if (callsign != _connectedCallsign)
+		if (!callsign.Equals(_connectedCallsign, StringComparison.InvariantCultureIgnoreCase))
 			return;
 
 		if (response.Approved)
