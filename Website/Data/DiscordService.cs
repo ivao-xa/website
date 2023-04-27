@@ -32,6 +32,7 @@ public partial class DiscordService
 		{ DiscordRoles.Pilot, "pilot" },
 		{ DiscordRoles.Controller, "controller" },
 		{ DiscordRoles.Member, "member" },
+		{ DiscordRoles.Announcement, "announcement" },
 	};
 
 	public async Task<bool> SendMessageAsync(User user, string message, int? deleteAfter = null)
@@ -222,182 +223,189 @@ public partial class DiscordService
 			if (!command.Data.Name.StartsWith("debug-"))
 				return;
 
-			switch (command.Data.Name["debug-".Length..])
+			try
+			{
+				switch (command.Data.Name["debug-".Length..])
 #else
 			switch (command.Data.Name)
 #endif
+				{
+					case "train-atc":
+					case "train-pilot":
+						bool pilot = command.Data.Name == "train-pilot";
+
+						var trainContext = await _webContextFactory.CreateDbContextAsync();
+						var trainerUser = (SocketGuildUser)command.User;
+						var traineeUser = (SocketGuildUser)getOption("trainee").Value;
+
+						var trainer = await trainContext.Users.SingleOrDefaultAsync(u => u.Snowflake == trainerUser.Id);
+						var trainee = await trainContext.Users.SingleOrDefaultAsync(u => u.Snowflake == traineeUser.Id);
+
+						if (trainer is null)
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = $"Couldn't create training. I don't know who you are!");
+							return;
+						}
+
+						if (!trainer.Roles.HasFlag(DiscordRoles.Training))
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = $"Ask your trainer to make the training for you.");
+							return;
+						}
+
+						if (trainee is null)
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = $"Looks like the {traineeUser.Mention} isn't in the system. Ask them to run `/register` to join and then try again.");
+							return;
+						}
+
+						if (pilot)
+						{
+							var trainingRating = (trainee.RatingPilot ?? PilotRating.FS1) + 1;
+
+							trainContext.TrainingRequests.Add(new() {
+								Trainer = trainer.Vid,
+								Trainee = trainee.Vid,
+								PilotRating = trainingRating,
+								Comments = "0/" + Directory.GetFiles(Path.Join("training", "data", Enum.GetName(trainingRating))).Length
+							});
+
+							await command.ModifyOriginalResponseAsync(r => r.Content = $"Created an {trainingRating} training for {traineeUser.Mention} (VID: {trainee.Vid})");
+						}
+						else
+						{
+							var trainingRating = (trainee.RatingAtc ?? AtcRating.AS1) + 1;
+
+							trainContext.TrainingRequests.Add(new() {
+								Trainer = trainer.Vid,
+								Trainee = trainee.Vid,
+								AtcRating = trainingRating,
+								Comments = "0/" + Directory.GetFiles(Path.Join("training", "data", Enum.GetName(trainingRating))).Length
+							});
+
+							await command.ModifyOriginalResponseAsync(r => r.Content = $"Created an {trainingRating} training for {traineeUser.Mention} (VID: {trainee.Vid})");
+						}
+
+						await trainContext.SaveChangesAsync();
+						await UpdateTrainingChannelsAsync(trainContext);
+						break;
+
+					case "exam":
+						var examContext = await _webContextFactory.CreateDbContextAsync();
+						var examTrainer = examContext.Users.FirstOrDefault(u => u.Snowflake == ((SocketGuildUser)command.User).Id);
+
+						if (examTrainer is null)
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = "Who are you and how did you get in my channel?");
+							break;
+						}
+						else if (!examTrainer.Roles.HasFlag(DiscordRoles.Training))
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = "Ask the designated trainer to do this for you.");
+							break;
+						}
+
+						string traineeVidStr = new(command.Channel.Name.TakeWhile(char.IsDigit).ToArray());
+						if (traineeVidStr.Length != 6 || !int.TryParse(traineeVidStr, out int traineeVid))
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = "This isn't a training channel!");
+							break;
+						}
+
+						var assignedTrainings = examContext.TrainingRequests.Where(tr => tr.Trainer == examTrainer.Vid).AsNoTracking().ToArray();
+						if (assignedTrainings.FirstOrDefault(tr => tr.Trainee == traineeVid) is not TrainingRequest req)
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = "You are not the assigned trainer for this channel.");
+							break;
+						}
+						else if (req.AtcRating is null)
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = "Only ATC exams can be scheduled through the bot. Please use this channel for coordinating pilot exams.");
+							break;
+						}
+
+						if (!DateTime.TryParse((string)getOption("start").Value, out DateTime startTime))
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = $"I couldn't figure out when you wanted the exam to start, sorry! Try using this format: {DateTime.UtcNow}");
+							break;
+						}
+
+						await examContext.Exams.AddAsync(new() {
+							Rating = req.AtcRating.Value,
+							Trainer = req.Trainer!.Value,
+							Trainee = req.Trainee,
+							Mock = false,
+							Start = startTime,
+							Position = (string)getOption("position").Value
+						});
+
+						await command.ModifyOriginalResponseAsync(r => r.Content = "Done! It's been scheduled.");
+						break;
+
+					case "unlink":
+						var ivao = _client.Guilds.Single();
+						IEnumerable<SocketRole> roleToSnowflakes(DiscordRoles roles, AtcRating? atcRating = null, PilotRating? pilotRating = null)
+						{
+							yield return ivao.Roles.Single(r => r.Name.Equals("linked", StringComparison.InvariantCultureIgnoreCase));
+
+							for (int shift = 0; shift < 64; ++shift)
+								if (roles.HasFlag((DiscordRoles)((ulong)1 << shift)))
+									yield return ivao.Roles.Single(r => r.Name.Equals(_roles[(DiscordRoles)((ulong)1 << shift)], StringComparison.InvariantCulture));
+
+							yield return ivao.Roles.Single(r => r.Name.Equals("visitor", StringComparison.InvariantCulture));
+
+							foreach (var ar in Enum.GetValues<AtcRating>())
+								yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((AtcRating)Math.Min((int)ar, (int)AtcRating.SEC)) switch { "SEC" => "SEC+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
+
+							foreach (var pr in Enum.GetValues<PilotRating>())
+								yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((PilotRating)Math.Min((int)pr, (int)PilotRating.ATP)) switch { "ATP" => "ATP+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
+						}
+
+						var unlinkContext = await _webContextFactory.CreateDbContextAsync();
+						var unlinkUser = (SocketGuildUser)getOption("user").Value;
+						if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == command.User.Id) is not User executor || !executor.Roles.HasFlag(DiscordRoles.Administrator))
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = "You don't have the authority to unlink a user. Ping an administrator.");
+							break;
+						}
+
+						if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == unlinkUser.Id) is User ulU)
+						{
+							unlinkContext.Users.Remove(ulU);
+							await unlinkContext.SaveChangesAsync();
+							_ = Enshrine($"{ulU.Name} ({ulU.Vid}/{ulU.Mention}) was unlinked by {executor.Name}");
+						}
+
+						_ = unlinkUser.RemoveRolesAsync(roleToSnowflakes(DiscordRoles.All).Distinct());
+						await command.ModifyOriginalResponseAsync(r => r.Content = "Done! They'll now have to reverify.");
+						break;
+
+					case "nick":
+						if (getOption("user").Value is not SocketGuildUser sgu || getOption("nick").Value is not string nick)
+							break;
+
+						var nickContext = await _webContextFactory.CreateDbContextAsync();
+						if (nickContext.Users.SingleOrDefault(u => u.Snowflake == command.User.Id) is not User nickAdmin || !nickAdmin.Roles.HasFlag(DiscordRoles.Membership))
+						{
+							await command.ModifyOriginalResponseAsync(r => r.Content = "You don't have the necessary permissions.");
+							break;
+						}
+
+						if (nickContext.Users.SingleOrDefault(u => u.Snowflake == sgu.Id) is not User u)
+							break;
+
+						u.Nickname = nick;
+						_ = nickContext.SaveChangesAsync();
+						await command.ModifyOriginalResponseAsync(r => r.Content = "All done!");
+						break;
+
+					default:
+						throw new NotImplementedException("Unrecognised Command");
+				}
+			}
+			catch (Exception ex)
 			{
-				case "train-atc":
-				case "train-pilot":
-					bool pilot = command.Data.Name == "train-pilot";
-
-					var trainContext = await _webContextFactory.CreateDbContextAsync();
-					var trainerUser = (SocketGuildUser)command.User;
-					var traineeUser = (SocketGuildUser)getOption("trainee").Value;
-
-					var trainer = await trainContext.Users.SingleOrDefaultAsync(u => u.Snowflake == trainerUser.Id);
-					var trainee = await trainContext.Users.SingleOrDefaultAsync(u => u.Snowflake == traineeUser.Id);
-
-					if (trainer is null)
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = $"Couldn't create training. I don't know who you are!");
-						return;
-					}
-
-					if (!trainer.Roles.HasFlag(DiscordRoles.Training))
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = $"Ask your trainer to make the training for you.");
-						return;
-					}
-
-					if (trainee is null)
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = $"Looks like the {traineeUser.Mention} isn't in the system. Ask them to run `/register` to join and then try again.");
-						return;
-					}
-
-					if (pilot)
-					{
-						var trainingRating = (trainee.RatingPilot ?? PilotRating.FS1) + 1;
-
-						trainContext.TrainingRequests.Add(new() {
-							Trainer = trainer.Vid,
-							Trainee = trainee.Vid,
-							PilotRating = trainingRating,
-							Comments = "0/" + Directory.GetFiles(Path.Join("training", "data", Enum.GetName(trainingRating))).Length
-						});
-
-						await command.ModifyOriginalResponseAsync(r => r.Content = $"Created an {trainingRating} training for {traineeUser.Mention} (VID: {trainee.Vid})");
-					}
-					else
-					{
-						var trainingRating = (trainee.RatingAtc ?? AtcRating.AS1) + 1;
-
-						trainContext.TrainingRequests.Add(new() {
-							Trainer = trainer.Vid,
-							Trainee = trainee.Vid,
-							AtcRating = trainingRating,
-							Comments = "0/" + Directory.GetFiles(Path.Join("training", "data", Enum.GetName(trainingRating))).Length
-						});
-
-						await command.ModifyOriginalResponseAsync(r => r.Content = $"Created an {trainingRating} training for {traineeUser.Mention} (VID: {trainee.Vid})");
-					}
-
-					await trainContext.SaveChangesAsync();
-					await UpdateTrainingChannelsAsync(trainContext);
-					break;
-
-				case "exam":
-					var examContext = await _webContextFactory.CreateDbContextAsync();
-					var examTrainer = examContext.Users.FirstOrDefault(u => u.Snowflake == ((SocketGuildUser)command.User).Id);
-
-					if (examTrainer is null)
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = "Who are you and how did you get in my channel?");
-						break;
-					}
-					else if (!examTrainer.Roles.HasFlag(DiscordRoles.Training))
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = "Ask the designated trainer to do this for you.");
-						break;
-					}
-
-					string traineeVidStr = new(command.Channel.Name.TakeWhile(char.IsDigit).ToArray());
-					if (traineeVidStr.Length != 6 || !int.TryParse(traineeVidStr, out int traineeVid))
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = "This isn't a training channel!");
-						break;
-					}
-
-					var assignedTrainings = examContext.TrainingRequests.Where(tr => tr.Trainer == examTrainer.Vid).AsNoTracking().ToArray();
-					if (assignedTrainings.FirstOrDefault(tr => tr.Trainee == traineeVid) is not TrainingRequest req)
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = "You are not the assigned trainer for this channel.");
-						break;
-					}
-					else if (req.AtcRating is null)
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = "Only ATC exams can be scheduled through the bot. Please use this channel for coordinating pilot exams.");
-						break;
-					}
-
-					if (!DateTime.TryParse((string)getOption("start").Value, out DateTime startTime))
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = $"I couldn't figure out when you wanted the exam to start, sorry! Try using this format: {DateTime.UtcNow}");
-						break;
-					}
-
-					await examContext.Exams.AddAsync(new() {
-						Rating = req.AtcRating.Value,
-						Trainer = req.Trainer!.Value,
-						Trainee = req.Trainee,
-						Mock = false,
-						Start = startTime,
-						Position = (string)getOption("position").Value
-					});
-
-					await command.ModifyOriginalResponseAsync(r => r.Content = "Done! It's been scheduled.");
-					break;
-
-				case "unlink":
-					var ivao = _client.Guilds.Single();
-					IEnumerable<SocketRole> roleToSnowflakes(DiscordRoles roles, AtcRating? atcRating = null, PilotRating? pilotRating = null)
-					{
-						yield return ivao.Roles.Single(r => r.Name.Equals("linked", StringComparison.InvariantCultureIgnoreCase));
-
-						for (int shift = 0; shift < 64; ++shift)
-							if (roles.HasFlag((DiscordRoles)((ulong)1 << shift)))
-								yield return ivao.Roles.Single(r => r.Name.Equals(_roles[(DiscordRoles)((ulong)1 << shift)], StringComparison.InvariantCulture));
-
-						yield return ivao.Roles.Single(r => r.Name.Equals("visitor", StringComparison.InvariantCulture));
-
-						foreach (var ar in Enum.GetValues<AtcRating>())
-							yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((AtcRating)Math.Min((int)ar, (int)AtcRating.SEC)) switch { "SEC" => "SEC+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
-
-						foreach (var pr in Enum.GetValues<PilotRating>())
-							yield return ivao.Roles.Single(r => r.Name.Equals(Enum.GetName((PilotRating)Math.Min((int)pr, (int)PilotRating.ATP)) switch { "ATP" => "ATP+", string a => a, _ => throw new Exception() }, StringComparison.InvariantCulture));
-					}
-
-					var unlinkContext = await _webContextFactory.CreateDbContextAsync();
-					var unlinkUser = (SocketGuildUser)getOption("user").Value;
-					if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == command.User.Id) is not User executor || !executor.Roles.HasFlag(DiscordRoles.Administrator))
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = "You don't have the authority to unlink a user. Ping an administrator.");
-						break;
-					}
-
-					if (await unlinkContext.Users.FirstOrDefaultAsync(u => u.Snowflake == unlinkUser.Id) is User ulU)
-					{
-						unlinkContext.Users.Remove(ulU);
-						await unlinkContext.SaveChangesAsync();
-						_ = Enshrine($"{ulU.Name} ({ulU.Vid}/{ulU.Mention}) was unlinked by {executor.Name}");
-					}
-
-					_ = unlinkUser.RemoveRolesAsync(roleToSnowflakes(DiscordRoles.All).Distinct());
-					await command.ModifyOriginalResponseAsync(r => r.Content = "Done! They'll now have to reverify.");
-					break;
-
-				case "nick":
-					if (getOption("user").Value is not SocketGuildUser sgu || getOption("nick").Value is not string nick)
-						break;
-
-					var nickContext = await _webContextFactory.CreateDbContextAsync();
-					if (nickContext.Users.SingleOrDefault(u => u.Snowflake == command.User.Id) is not User nickAdmin || !nickAdmin.Roles.HasFlag(DiscordRoles.Membership))
-					{
-						await command.ModifyOriginalResponseAsync(r => r.Content = "You don't have the necessary permissions.");
-						break;
-					}
-
-					if (nickContext.Users.SingleOrDefault(u => u.Snowflake == sgu.Id) is not User u)
-						break;
-
-					u.Nickname = nick;
-					_ = nickContext.SaveChangesAsync();
-					await command.ModifyOriginalResponseAsync(r => r.Content = "All done!");
-					break;
-
-				default:
-					throw new NotImplementedException("Unrecognised Command");
+				await command.ModifyOriginalResponseAsync(r => r.Content = $"Error! {ex.Message}\n{ex.StackTrace}");
 			}
 		};
 
@@ -408,7 +416,7 @@ public partial class DiscordService
 
 		_client.MessageDeleted += async (message, channel) =>
 		{
-			if (!message.HasValue 
+			if (!message.HasValue
 			  || message.Value.Author is not SocketGuildUser sgu
 			  || !channel.HasValue || channel.Value.Name.Contains("museum")
 			  || string.IsNullOrEmpty(message.Value.Content))
