@@ -6,6 +6,7 @@
 <div class="container gap-5">
 	<div id="bannerCarousel" class="carousel slide px-5 pt-4" data-bs-ride="carousel">
 		<div class="carousel-inner rounded">
+			<div class="carousel-item active"><img src="img/banner_welcome.png" class="d-block w-100" alt="XA Online Day" /></div>
 			<div class="carousel-item active"><img src="https://xa.ivao.aero/api/v1/public/get_online_day_image.php" class="d-block w-100" alt="XA Online Day" /></div>
 			@foreach (ICalendarItem item in calendarItems ?? Array.Empty<ICalendarItem>())
 			{
