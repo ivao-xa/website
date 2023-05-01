@@ -169,24 +169,6 @@ public partial class DiscordService
 		await verifyChannel.SendMessageAsync(text: "Click the button to receive a message with instructions on how to connect to the website and receive your roles.", components: new ComponentBuilder().WithButton("Connect", "connect").Build());
 	}
 
-	private async Task QuietlyCatalogueUserAsync(IGuildUser igu)
-	{
-		if (!(igu.DisplayName?.Contains('|') ?? false))
-			return;
-
-		string potVid = igu.Nickname?.Split('|', StringSplitOptions.TrimEntries)[^1] ?? "";
-		if (!int.TryParse(potVid, out int vid))
-			return;
-
-		var webContext = _webContextFactory.CreateDbContext();
-		if (await webContext.Users.FindAsync(vid) is User u && u.Snowflake is null)
-			u.Snowflake = igu.Id;
-		else
-			await webContext.Users.AddAsync(new() { Vid = vid, Snowflake = igu.Id, Roles = 0 });
-
-		await webContext.SaveChangesAsync();
-	}
-
 	private async Task Enshrine(string message)
 	{
 		if (FindTextChannelByName("museum-of-fail") is not SocketTextChannel museum)
@@ -203,15 +185,6 @@ public partial class DiscordService
 		Dictionary<ATC, ulong> trainingExamAnnouncements = new();
 
 		_client.Log += LogAsync;
-		_client.MessageReceived += async msg =>
-		{
-			if (msg.Author is IGuildUser igu)
-				await QuietlyCatalogueUserAsync(igu);
-
-			foreach (var user in msg.MentionedUsers)
-				if (user is IGuildUser igu2)
-					await QuietlyCatalogueUserAsync(igu2);
-		};
 
 		_client.SlashCommandExecuted += async command =>
 		{
