@@ -1,5 +1,7 @@
 ﻿namespace Website.Data;
 
+using Discord;
+
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,7 +38,8 @@ public class IvaoLoginService
             if (await db.Users.FindAsync(json.Vid) is User suspendedUser)
             {
                 db.Users.Remove(suspendedUser);
-                await db.SaveChangesAsync();
+				Console.WriteLine($"Deleted suspended user {suspendedUser.Vid}  ({suspendedUser.Name} {suspendedUser.LastName})");
+				await db.SaveChangesAsync();
             }
 
             return null;
@@ -54,12 +57,13 @@ public class IvaoLoginService
             u.Staff = json.Staff is null ? null : string.Join(':', json.Staff.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries));
 
             await _session.SetAsync("User", u);
-            retval = u;
-        }
-        else
-        {
-            // First time logging in. Add them.
-            User user = new() {
+			Console.WriteLine($"Updated user {u.Vid} ({u.Name} {u.LastName})");
+			retval = u;
+		}
+		else
+		{
+			// First time logging in. Add them.
+			User user = new() {
                 Vid = json.Vid,
                 FirstName = json.FirstName,
                 LastName = json.LastName,
@@ -73,7 +77,8 @@ public class IvaoLoginService
             };
 
             await db.Users.AddAsync(user);
-            Console.WriteLine($"Added user {user.Vid} ({user.Name} {user.LastName})");
+			await _session.SetAsync("User", user);
+			Console.WriteLine($"Added user {user.Vid} ({user.Name} {user.LastName})");
             retval = user;
         }
 
