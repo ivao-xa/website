@@ -13,12 +13,7 @@ using Website.Data.Ocms;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
-builder.WebHost.UseUrls("http://*:80;https://*:443");
-
-if (File.Exists("site.crt"))
-	builder.WebHost.UseKestrel(serverOptions =>
-		serverOptions.ListenAnyIP(443, listenOptions => listenOptions.UseHttps("site.crt"))
-	);
+builder.WebHost.UseUrls("http://*:80");
 
 builder.Configuration.SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJsonFile("appsettings.json", false, true).AddEnvironmentVariables();
 
@@ -50,8 +45,6 @@ if (!app.Environment.IsDevelopment())
 	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
 	app.UseHsts();
 }
-
-app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
