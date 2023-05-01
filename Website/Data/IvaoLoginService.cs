@@ -32,7 +32,7 @@ public class IvaoLoginService
 
         // Generate or update the user's database entry.
         var db = await _dbContextFactory.CreateDbContextAsync();
-        if (json.Rating != 2)
+        if (!(json.Rating is 2 or 11 or 12))
         {
             // User is not active.
             if (await db.Users.FindAsync(json.Vid) is User suspendedUser)

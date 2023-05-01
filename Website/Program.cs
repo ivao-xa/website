@@ -23,11 +23,11 @@ if (File.Exists("site.crt"))
 builder.Configuration.SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJsonFile("appsettings.json", false, true).AddEnvironmentVariables();
 
 //Add services to the container.
-builder.Services.AddHttpsRedirection(options =>
-{
-	options.RedirectStatusCode = (int)HttpStatusCode.TemporaryRedirect;
-	options.HttpsPort = 443;
-});
+//builder.Services.AddHttpsRedirection(options =>
+//{
+//	options.RedirectStatusCode = (int)HttpStatusCode.TemporaryRedirect;
+//	options.HttpsPort = 443;
+//});
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<ProtectedSessionStorage>();
@@ -51,7 +51,7 @@ if (!app.Environment.IsDevelopment())
 	app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
