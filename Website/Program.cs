@@ -13,21 +13,21 @@ using Website.Data.Ocms;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
-builder.WebHost.UseUrls("http://*:80;https://*:443");
+builder.WebHost.UseUrls("http://*:22125;https://*:22126");
 
 if (File.Exists("site.crt"))
 	builder.WebHost.UseKestrel(serverOptions =>
-		serverOptions.ListenAnyIP(443, listenOptions => listenOptions.UseHttps("site.crt"))
+		serverOptions.ListenAnyIP(22126, listenOptions => listenOptions.UseHttps("site.crt"))
 	);
 
 builder.Configuration.SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJsonFile("appsettings.json", false, true).AddEnvironmentVariables();
 
 //Add services to the container.
-//builder.Services.AddHttpsRedirection(options =>
-//{
-//	options.RedirectStatusCode = (int)HttpStatusCode.TemporaryRedirect;
-//	options.HttpsPort = 443;
-//});
+builder.Services.AddHttpsRedirection(options =>
+{
+	options.RedirectStatusCode = (int)HttpStatusCode.TemporaryRedirect;
+	options.HttpsPort = 22126;
+});
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<ProtectedSessionStorage>();
@@ -51,7 +51,7 @@ if (!app.Environment.IsDevelopment())
 	app.UseHsts();
 }
 
-//app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
