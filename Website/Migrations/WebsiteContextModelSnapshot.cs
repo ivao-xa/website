@@ -43,7 +43,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Deviations");
+                    b.ToTable("Deviations", (string)null);
                 });
 
             modelBuilder.Entity("Website.Data.Document", b =>
@@ -70,7 +70,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Documents");
+                    b.ToTable("Documents", (string)null);
                 });
 
             modelBuilder.Entity("Website.Data.Event", b =>
@@ -106,7 +106,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Events");
+                    b.ToTable("Events", (string)null);
                 });
 
             modelBuilder.Entity("Website.Data.EventSignup", b =>
@@ -118,7 +118,7 @@ namespace Website.Migrations
                     b.Property<int>("Controller")
                         .HasColumnType("int");
 
-                    b.Property<int?>("EventId")
+                    b.Property<int>("EventId")
                         .HasColumnType("int");
 
                     b.Property<string>("Position")
@@ -130,7 +130,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("EventSignups");
+                    b.ToTable("EventSignups", (string)null);
                 });
 
             modelBuilder.Entity("Website.Data.Exam", b =>
@@ -163,7 +163,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Exams");
+                    b.ToTable("Exams", (string)null);
                 });
 
             modelBuilder.Entity("Website.Data.TrainingRequest", b =>
@@ -194,7 +194,7 @@ namespace Website.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TrainingRequests");
+                    b.ToTable("TrainingRequests", (string)null);
                 });
 
             modelBuilder.Entity("Website.Data.User", b =>
@@ -247,7 +247,7 @@ namespace Website.Migrations
 
                     b.HasKey("Vid");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 #pragma warning restore 612, 618
         }

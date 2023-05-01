@@ -172,7 +172,6 @@ public class Event : ICalendarItem
 public class EventSignup
 {
 	public int Id { get; set; }
-	[ForeignKey("Events.Id")]
 	public int EventId { get; set; }
 
 	public int Controller { get; set; }
