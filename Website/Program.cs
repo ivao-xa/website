@@ -13,11 +13,11 @@ using Website.Data.Ocms;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
-builder.WebHost.UseUrls("http://*:22125;https://*:22126");
+builder.WebHost.UseUrls("http://*:80;https://*:443");
 
 if (File.Exists("site.crt"))
 	builder.WebHost.UseKestrel(serverOptions =>
-		serverOptions.ListenAnyIP(22126, listenOptions => listenOptions.UseHttps("site.crt"))
+		serverOptions.ListenAnyIP(443, listenOptions => listenOptions.UseHttps("site.crt"))
 	);
 
 builder.Configuration.SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJsonFile("appsettings.json", false, true).AddEnvironmentVariables();
@@ -26,7 +26,7 @@ builder.Configuration.SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJson
 builder.Services.AddHttpsRedirection(options =>
 {
 	options.RedirectStatusCode = (int)HttpStatusCode.TemporaryRedirect;
-	options.HttpsPort = 22126;
+	options.HttpsPort = 443;
 });
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
