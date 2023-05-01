@@ -77,7 +77,6 @@ public class IvaoLoginService
             };
 
             await db.Users.AddAsync(user);
-			await _session.SetAsync("User", user);
 			Console.WriteLine($"Added user {user.Vid} ({user.Name} {user.LastName})");
             retval = user;
         }
