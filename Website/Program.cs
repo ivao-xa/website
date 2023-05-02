@@ -18,12 +18,11 @@ builder.WebHost.UseUrls("http://*:80");
 builder.Configuration.SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJsonFile("appsettings.json", false, true).AddEnvironmentVariables();
 
 //Add services to the container.
+builder.Services.AddRazorPages();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
 	options.KnownProxies.Add(IPAddress.Parse("152.228.161.65"));
 });
-
-builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<ProtectedSessionStorage>();
 builder.Services.AddHttpClient();
@@ -46,8 +45,14 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions {
 if (!app.Environment.IsDevelopment())
 {
 	app.UseExceptionHandler("/Error");
+	app.UseForwardedHeaders();
 	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
 	app.UseHsts();
+}
+else
+{
+	app.UseDeveloperExceptionPage();
+	app.UseForwardedHeaders();
 }
 
 app.UseStaticFiles();
