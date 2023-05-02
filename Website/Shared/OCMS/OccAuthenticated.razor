@@ -59,7 +59,7 @@ else if (Loading is not null)
             return;
 
         Uri url = new(NavManager.Uri);
-        if (!url.Query.Contains("token="))
+        if (!url.Query.Contains("IVAOTOKEN="))
         {
             // No token present. Check to see if we're already logged in or hand them off to HQ for authentication.
             authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
@@ -72,7 +72,7 @@ else if (Loading is not null)
         }
 
         // Token present. Register the user, update roles, and clean up the URL in the browser.
-        string token = url.Query.Split("token=")[1];
+        string token = url.Query.Split("IVAOTOKEN=")[1];
 
         await LoginSrv.RegisterUserAsync(token);
         authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
