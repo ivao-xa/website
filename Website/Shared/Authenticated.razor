@@ -65,7 +65,7 @@ else if (Loading is not null)
             authenticatedUser = await LoginSrv.GetAuthenticatedUserAsync();
 
             if (authenticatedUser is null)
-                NavManager.NavigateTo($"https://login.ivao.aero/index.php?url=https%3A%2F%2Fxa.ivao.aero%2Flogin_redirect.php%3Fredir_to%3D{Uri.EscapeDataString(Uri.EscapeDataString(NavManager.Uri))}");
+                NavManager.NavigateTo($"https://login.ivao.aero/index.php?url={Uri.EscapeDataString(NavManager.Uri)}");
 
             await InvokeAsync(StateHasChanged);
             return;
