@@ -146,9 +146,9 @@ public partial class DiscordService
 
 			string reglink =
 #if DEBUG
-				"http://52.43.225.251/register/" + component.User.Id;
+				"https://new.xa.ivao.aero/register/" + component.User.Id;
 #else
-				"http://xa.ivao.aero/register/" + component.User.Id;
+				"https://xa.ivao.aero/register/" + component.User.Id;
 #endif
 
 			try
