@@ -18,11 +18,11 @@ builder.WebHost.UseUrls("http://*:80");
 builder.Configuration.SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJsonFile("appsettings.json", false, true).AddEnvironmentVariables();
 
 //Add services to the container.
-builder.Services.AddHttpsRedirection(options =>
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-	options.RedirectStatusCode = (int)HttpStatusCode.TemporaryRedirect;
-	options.HttpsPort = 443;
+	options.KnownProxies.Add(IPAddress.Parse("152.228.161.65"));
 });
+
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<ProtectedSessionStorage>();
@@ -37,6 +37,10 @@ builder.Services.AddSingleton<DatalinkService>();
 builder.Services.AddBlazorise(o => o.Immediate = true).AddBootstrap5Providers().AddFontAwesomeIcons();
 
 var app = builder.Build();
+
+app.UseForwardedHeaders(new ForwardedHeadersOptions {
+	ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
