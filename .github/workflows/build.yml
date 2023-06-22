@@ -21,5 +21,6 @@ jobs:
         cd publish
         git config --global user.name 'Autobuild'
         git config --global user.email 'xa-wm@ivao.aero'
-        git commit -am "Automated build of ${{ github.sha }}"
+        git add *
+        git commit -m "Automated build of ${{ github.sha }}"
         git push --force
