@@ -21,8 +21,8 @@ jobs:
       run: |
         cd publish
         git config advice.addIgnoredFile false
-        git config --global user.name 'Autobuild'
-        git config --global user.email 'xa-wm@ivao.aero'
+        git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
+        git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
         git add * || true
         git commit -m "Automated build of ${{ github.sha }}"
-        git push --force
+        git push "https://$GITHUB_ACTOR:$GITHUB_TOKEN@github.com/ivao-xa/website.git" deploy --force
