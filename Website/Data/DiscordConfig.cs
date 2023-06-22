@@ -349,6 +349,7 @@ public partial class DiscordService
 		return Task.CompletedTask;
 	}
 
+#if NET7_0_OR_GREATER
 	[GeneratedRegex("\\bXA-(T[CA0]|A?DIR)")]
 	private static partial Regex TrainerRegex();
 	[GeneratedRegex("\\bXA-(M(AC?|C)|A?DIR)")]
@@ -357,6 +358,19 @@ public partial class DiscordService
 	private static partial Regex EventsRegex();
 	[GeneratedRegex("\\bXA-(A?WM|WMA\\d|A?DIR)")]
 	private static partial Regex AdministratorRegex();
+#else
+	private static Regex _trainerRegex = new(@"\bXA-(T[CA0]|A?DIR)", RegexOptions.Compiled);
+	private static Regex TrainerRegex() => _trainerRegex;
+
+	private static Regex _membershipRegex = new(@"\bXA-(M(AC?|C)|A?DIR)", RegexOptions.Compiled);
+	private static Regex MembershipRegex() => _membershipRegex;
+
+	private static Regex _eventsRegex = new("\\bXA-(E(AC?|C)|A?DIR)", RegexOptions.Compiled);
+	private static Regex EventsRegex() => _eventsRegex;
+
+	private static Regex _administratorRegex = new("\\bXA-(A?WM|WMA\\d|A?DIR)", RegexOptions.Compiled);
+	private static Regex AdministratorRegex() => _administratorRegex;
+#endif
 }
 
 /// <summary>

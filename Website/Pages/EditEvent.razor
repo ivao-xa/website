@@ -11,27 +11,27 @@
 				<div class="form">
 					<div class="mb-3 row">
 						<div class="col-auto"><label for="eventName" class="form-label">Event Name</label></div>
-						<div class="col-auto flex-grow-1"><input type="text" class="form-control" name="eventName" @bind="Event.Name" @bind:after="StateHasChanged" /></div>
+						<div class="col-auto flex-grow-1"><input type="text" class="form-control" name="eventName" @bind="Event.Name" /></div>
 					</div>
 					<div class="mb-3 row">
 						<div class="col-auto"><label for="eventBanner" class="form-label">Banner URL</label></div>
-						<div class="col-auto flex-grow-1"><input type="url" class="form-control" name="eventBanner" @bind="Event.BannerUrl" @bind:after="StateHasChanged" /></div>
+						<div class="col-auto flex-grow-1"><input type="url" class="form-control" name="eventBanner" @bind="Event.BannerUrl" /></div>
 					</div>
 					<div class="mb-3 row">
 						<div class="col-auto"><label for="eventForum" class="form-label">Forum URL</label></div>
-						<div class="col-auto flex-grow-1"><input type="url" class="form-control" name="eventForum" @bind="Event.ForumUrl" @bind:after="StateHasChanged" /></div>
+						<div class="col-auto flex-grow-1"><input type="url" class="form-control" name="eventForum" @bind="Event.ForumUrl" /></div>
 					</div>
 					<div class="mb-3 row">
 						<div class="col-auto"><label for="eventStart" class="form-label">Start</label></div>
-						<div class="col-auto flex-grow-1"><input type="datetime-local" class="form-control" name="eventStart" @bind="Event.Start" @bind:after="StateHasChanged" /></div>
+						<div class="col-auto flex-grow-1"><input type="datetime-local" class="form-control" name="eventStart" @bind="Event.Start" /></div>
 					</div>
 					<div class="mb-3 row">
 						<div class="col-auto"><label for="eventEnd" class="form-label">End</label></div>
-						<div class="col-auto flex-grow-1"><input type="datetime-local" class="form-control" name="eventEnd" @bind="Event.End" @bind:after="StateHasChanged" /></div>
+						<div class="col-auto flex-grow-1"><input type="datetime-local" class="form-control" name="eventEnd" @bind="Event.End" /></div>
 					</div>
 					<div class="mb-3 row">
 						<div class="col-auto"><label for="eventPositions" class="form-label">Positions</label></div>
-						<div class="col-auto flex-grow-1"><textarea type="text" class="form-control" name="eventPositions" @bind="PositionsStr" @bind:event="oninput" @bind:after="StateHasChanged" /></div>
+						<div class="col-auto flex-grow-1"><textarea type="text" class="form-control" name="eventPositions" @bind="PositionsStr" @bind:event="oninput" /></div>
 					</div>
 
 					<button class="btn btn-primary" @onclick="_ => EventChangedAsync()">Save</button>

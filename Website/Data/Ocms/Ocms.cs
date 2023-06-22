@@ -705,6 +705,7 @@ public partial class OccStrips : IDisposable
 		GC.SuppressFinalize(this);
 	}
 
+#if NET7_0_OR_GREATER
 	[GeneratedRegex(@"\bSEL/([A-Z]{4})\b", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant)]
 	private static partial Regex SelcalRegex();
 
@@ -716,4 +717,17 @@ public partial class OccStrips : IDisposable
 
 	[GeneratedRegex(@"TMI IS (\d+)", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
 	private static partial Regex TmiRegex();
+#else
+	private static readonly Regex _selcalRegex = new(@"\bSEL/([A-Z]{4})\b", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+	private static Regex SelcalRegex() => _selcalRegex;
+
+	private static readonly Regex _occPosRegex = new(@"(?:(\d\d(?:[03]0)?)N(0\d\d(?:[03]0)?)W)|(?:(\d\d(?:30)?)/(\d\d(?:30)?))", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant);
+	private static Regex OccPosRegex() => _occPosRegex;
+
+	private static readonly Regex _trackRegex = new(@"^([A-Z])(?: ([^ \r\n]+))+$", RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline);
+	private static Regex TrackRegex() => _trackRegex;
+
+	private static readonly Regex _tmiRegex = new(@"TMI IS (\d+)", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+	private static Regex TmiRegex() => _tmiRegex;
+#endif
 }
