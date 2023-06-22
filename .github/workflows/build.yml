@@ -14,13 +14,15 @@ jobs:
     - name: Build
       run: |
         rm -rf publish
-        git clone -b deploy https://github.com/ivao-xa/website
+        git clone -b deploy https://github.com/ivao-xa/website publish
+        rm -rf publish/*
         dotnet build --configuration DEBUG Website/Website.csproj -o publish
     - name: Commit
       run: |
         cd publish
+        git config advice.addIgnoredFile false
         git config --global user.name 'Autobuild'
         git config --global user.email 'xa-wm@ivao.aero'
-        git add *
+        git add * || true
         git commit -m "Automated build of ${{ github.sha }}"
         git push --force
