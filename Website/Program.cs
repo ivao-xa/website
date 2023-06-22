@@ -5,8 +5,6 @@ using Blazorise.Icons.FontAwesome;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Microsoft.EntityFrameworkCore;
 
-using System.Net;
-
 using Website.Data;
 using Website.Data.Ocms;
 
@@ -19,10 +17,6 @@ builder.Configuration.SetBasePath(AppDomain.CurrentDomain.BaseDirectory).AddJson
 
 //Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-	options.KnownProxies.Add(IPAddress.Parse("152.228.161.65"));
-});
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<ProtectedSessionStorage>();
 builder.Services.AddHttpClient();
@@ -45,14 +39,12 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions {
 if (!app.Environment.IsDevelopment())
 {
 	app.UseExceptionHandler("/Error");
-	app.UseForwardedHeaders();
 	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
 	app.UseHsts();
 }
 else
 {
 	app.UseDeveloperExceptionPage();
-	app.UseForwardedHeaders();
 }
 
 app.UseStaticFiles();
