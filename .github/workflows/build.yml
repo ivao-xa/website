@@ -17,6 +17,8 @@ jobs:
         git clone -b deploy https://github.com/ivao-xa/website publish
         rm -rf publish/*
         dotnet publish -c debug Website/Website.csproj -o publish
+        pwd
+        ls
     - name: Commit
       run: |
         cd publish
