@@ -1,0 +1,178 @@
+@import '_content/Microsoft.AspNetCore.Components.QuickGrid/Microsoft.AspNetCore.Components.QuickGrid.bundle.scp.css';
+
+/* _content/Website/Pages/Index.razor.rz.scp.css */
+.row[b-kf1h7uruxe] {
+    margin-top: 24px;
+    margin-bottom: 36px;
+}
+/* _content/Website/Pages/OCMS/Ocms.razor.rz.scp.css */
+.track[b-ofjqju47cb] {
+    border-radius: 5px;
+    background-color: #33363A;
+}
+
+.eastbound[b-ofjqju47cb] {
+    width: 48%;
+    border-radius: 5px;
+}
+
+.westbound[b-ofjqju47cb] {
+    width: 48%;
+    border-radius: 5px;
+}
+
+.bound-label[b-ofjqju47cb] {
+    margin: auto;
+    height: 28px;
+}
+
+    .bound-label > span[b-ofjqju47cb] {
+        position: relative;
+        top: 10px;
+    }
+
+.status[b-ofjqju47cb] {
+    margin-top: auto;
+    margin-bottom: auto;
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+}
+
+.status.big[b-ofjqju47cb] {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+}
+
+.color-east[b-ofjqju47cb] {
+    background-color: #EBC64B;
+}
+
+.color-west[b-ofjqju47cb] {
+    background-color: #3D7AF8;
+}
+/* _content/Website/Pages/OCMS/Pilot.razor.rz.scp.css */
+input.form-control:not(:disabled)[b-6dzzce1c0h] {
+    color: #000000;
+}
+/* _content/Website/Shared/ActiveControllers.razor.rz.scp.css */
+a[b-127yur1mq9] {
+    text-decoration-line: none;
+}
+/* _content/Website/Shared/ControllerRosterRow.razor.rz.scp.css */
+.loader[b-8ygahksa6j] {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db; 
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    animation: spin-b-8ygahksa6j 2s linear infinite;
+}
+
+@keyframes spin-b-8ygahksa6j {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+/* _content/Website/Shared/Footer.razor.rz.scp.css */
+.dashed-border[b-lutocmxbsm] {
+    border: 1px dashed rgba(var(--bs-secondary-rgb));
+}
+
+.dashed-border-top[b-lutocmxbsm] {
+    border-top: 1px dashed rgba(var(--bs-secondary-rgb));
+}
+
+a[b-lutocmxbsm] {
+    text-decoration-line: none;
+}
+
+.department[b-lutocmxbsm] {
+    margin-top: 1rem;
+}
+
+.social[b-lutocmxbsm] {
+    margin-top: 1rem;
+}
+
+    .social img[b-lutocmxbsm] {
+        max-height: 20px;
+    }
+/* _content/Website/Shared/NavBar.razor.rz.scp.css */
+[b-tkr9jcjxdt] .nav-link {
+    color: #6c757d!important;
+}
+
+    [b-tkr9jcjxdt] .nav-link.active {
+        color: #f8f9fa!important;
+    }
+
+a[b-tkr9jcjxdt] {
+    text-decoration-line: none;
+}
+
+[b-tkr9jcjxdt] .dropdown-item.active {
+    background-color: rgb(52, 58, 64)!important;
+}
+/* _content/Website/Shared/OCMS/FlightStrip.razor.rz.scp.css */
+.flightstrip[b-l711jm0beo] {
+    background-color: #525458;
+    border-radius: 5px;
+    white-space: nowrap;
+    height: 40px;
+}
+
+.btn-datalink[b-l711jm0beo] {
+    width: 6px;
+    height: 80%;
+}
+
+    .btn-datalink.connected[b-l711jm0beo] {
+        background-color: #5EBAC4;
+    }
+
+    .btn-datalink.disconnected[b-l711jm0beo] {
+        background-color: #ED5076;
+    }
+
+.callsign[b-l711jm0beo] {
+    margin: auto;
+}
+
+.num-input[b-l711jm0beo] {
+    margin: auto;
+    top: 0px;
+    bottom: 0px;
+    width: 5.5em;
+}
+
+.clickable[b-l711jm0beo] {
+    cursor: pointer;
+}
+
+.time-input[b-l711jm0beo] {
+    width: 3em;
+    flex: 0 0 auto;
+}
+
+.eastbound .direction-west:not(.direction-east)[b-l711jm0beo] {
+    display: none !important;
+}
+
+.westbound .direction-east:not(.direction-west)[b-l711jm0beo] {
+    display: none !important;
+}
+
+input[b-l711jm0beo] {
+    background-color: #6C6E71 !important;
+    color: #FFFFFF !important;
+}
+
+    input.form-control[b-l711jm0beo] {
+        color: #FFFFFF !important;
+    }
